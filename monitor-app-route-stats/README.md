@@ -15,17 +15,17 @@ Clone the code to local machine.
 git clone https://github.com/jbarozet/sdwan-apis.git
 ```
 
-### Setup Python Virtual Environment (requires Python 3.7+)
+### Setup Python Virtual Environment
 
 ```bash
-python3.7 -m venv venv
+python -m venv venv
 source venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
 ### Setup local environment variables to provide vManage instance details.
 
-Examples:
+Example for MacOSX:
 ```
 export vmanage_host=<vmanage-ip>
 export vmanage_port=<vmanage-port>
