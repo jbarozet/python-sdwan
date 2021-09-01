@@ -51,7 +51,7 @@ Once the query conditions are determined, you then provide the fields, histogram
 
 ### Commands available
 
-```
+```bash
 # python monitor-app-route-stats.py
 Usage: monitor-app-route-stats.py [OPTIONS] COMMAND [ARGS]...
 
@@ -69,10 +69,10 @@ Commands:
 #
 ```
 
-### Query fields
+### Example-1 - Query fields
 
 Example
-```
+```bash
 # python monitor-app-route-stats.py approute-fields
 vdevice_name(string)  local_system_ip(string)   src_ip(string)    loss_percentage(number)  name(string)
 host_name(string)     remote_system_ip(string)  dst_ip(string)    jitter(number)           loss(number)
@@ -85,12 +85,12 @@ vip_idx(number)       window(number)            latency(number)   rx_octets(numb
 ```
 
 
-### Example-1 - approute-stats
+### Example-2 - approute-stats
 
 The following example query retrieves average latency/loss/jitter and vqoe score for the last hour for all tunnels between routers with provided local and remote system-ip.
 
 Code snippet:
-```
+```json
 {
   "query": {
     "condition": "AND",
@@ -152,7 +152,7 @@ Code snippet:
 ```
 
 Sample response:
-```
+```bash
 # monitor-app-route-stats python monitor-app-route-stats.py approute-stats
 Enter Router-1 System IP address : 10.0.0.108
 Enter Router-2 System IP address : 10.0.0.101
@@ -179,7 +179,7 @@ Average App route statistics between 10.0.0.101 and 10.0.0.108 for last 1 hour
 
 
 
-### Example-2 - approute-report
+### Example-3 - approute-report
 
 The following query retrieves the application route statistics between the start date and end date as query conditions so you get the average latency/loss/jitter between those two intervals.
 (Note that only the UTC timezone is supported in query conditions so you need to convert the user input to UTC timezone if needed)
@@ -187,7 +187,7 @@ The following query retrieves the application route statistics between the start
 Here, the statistics are aggregated in 24 hour intervals so with that you can get a report of statistics for provided start and end dates with the average of statistics for 24 hour interval.
 
 Code snippet:
-```
+```json
 {
       "query": {
           "condition": "AND",

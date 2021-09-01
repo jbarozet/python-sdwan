@@ -86,6 +86,11 @@ def cli():
     """
     pass
 
+
+#----------------------------------------------------------------------------------------------------
+# approute-fields
+#----------------------------------------------------------------------------------------------------
+
 @click.command()
 def approute_fields():
     """ Retrieve App route Aggregation API Query fields.                                  
@@ -116,6 +121,10 @@ def approute_fields():
     except Exception as e:
         print('Exception line number: {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
+#----------------------------------------------------------------------------------------------------
+# approute-stats
+#----------------------------------------------------------------------------------------------------
+
 @click.command()
 def approute_stats():
     """ Create Average Approute statistics for all tunnels between provided 2 routers for last 1 hour.                                  
@@ -129,7 +138,7 @@ def approute_stats():
 
         # Get app route statistics for tunnels between router-1 and router-2
 
-        api_url = "/statistics/approute/fec/aggregation"
+        api_url = "/statistics/approute/aggregation"
 
         payload = {
                     "query": {
@@ -293,6 +302,10 @@ def approute_stats():
     except Exception as e:
         print('Exception line number: {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
             
+
+#----------------------------------------------------------------------------------------------------
+# approute-report
+#----------------------------------------------------------------------------------------------------
 
 @click.command()
 @click.option("--hub_list_file", help="YAML file with list of hub system ip addresses")
@@ -486,9 +499,13 @@ def approute_report(hub_list_file):
         print('Exception line number: {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 
+#----------------------------------------------------------------------------------------------------
+# approute-device
+#----------------------------------------------------------------------------------------------------
+
 @click.command()
 def approute_device():
-    """ Get Approute statistics for all tunnels for provided router.                                  
+    """ Get Realtime Approute statistics for all tunnels for provided router and remote.                                  
         \nExample command: ./monitor-app-route-stats.py approute-device
     """
 
@@ -500,6 +517,7 @@ def approute_device():
 
         # api_url = "/device/app-route/statistics?remote-system-ip=10.0.0.101&local-color=public-internet&remote-color=public-internet&deviceId=10.0.0.108"
         api_url = "/device/app-route/statistics?remote-system-ip=%s&local-color=%s&remote-color=%s&deviceId=%s"%(rtr2_systemip,color,color,rtr1_systemip)
+        #api_url = "/device/app-route/statistics?deviceId=%s&local-color=%s"%(rtr1_systemip,color)
 
 
         url = base_url + api_url
@@ -508,12 +526,12 @@ def approute_device():
 
         if response.status_code == 200:
             app_route_stats = response.json()["data"]
-            app_route_stats_headers = ["Index", "Mean Latency", "Mean Jitter", "Mean Loss", "average-latency", "average-jitter", "loss"]
+            app_route_stats_headers = ["vdevice-host-name", "remote-system-ip", "Index", "Mean Latency", "Mean Jitter", "Mean Loss", "average-latency", "average-jitter", "loss"]
             table = list()
 
-            click.echo("\nRealtime App route statistics between %s and %s\n"%(rtr2_systemip,rtr1_systemip))
+            click.echo("\nRealtime App route statistics for %s to %s\n"%(rtr1_systemip, rtr2_systemip))
             for item in app_route_stats:
-                tr = [item['index'], item['mean-latency'], item['mean-jitter'], item['mean-loss'], item['average-latency'], item['average-jitter'], item['loss']]
+                tr = [item['vdevice-host-name'], item['remote-system-ip'], item['index'], item['mean-latency'], item['mean-jitter'], item['mean-loss'], item['average-latency'], item['average-jitter'], item['loss']]
                 table.append(tr)
             try:
                 click.echo(tabulate.tabulate(table, app_route_stats_headers, tablefmt="fancy_grid"))
@@ -523,8 +541,8 @@ def approute_device():
         else:
             click.echo("Failed to retrieve app route statistics\n")
 
-        # click.echo("\n\nRaw data\n\n")
-        # click.echo(app_route_stats)
+        #click.echo("\n\nRaw data\n\n")
+        #click.echo(app_route_stats)
 
     except Exception as e:
         print('Exception line number: {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
