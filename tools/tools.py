@@ -152,11 +152,105 @@ def nbar_apps():
             click.echo("Failed to get list of App " + str(response.text))
             exit()
 
-        app_headers = ["name", "longname", "family"]
+        app_headers = ["name", "family", "longname"]
         table = list()
+        number = 0
 
         for item in items:
-            tr = [item['name'], item['longname'], item['family']]
+            tr = [item['name'], item['family'], item['longname'] ]
+            table.append(tr)
+            number = number + 1
+        
+        table.sort()
+
+        try:
+            click.echo(tabulate.tabulate(table, app_headers, tablefmt="fancy_grid"))
+        except UnicodeEncodeError:
+                click.echo(tabulate.tabulate(table, app_headers, tablefmt="grid"))
+
+        print("")
+        print("Number of entries: ", number)
+
+    except Exception as e:
+        print('Exception line number: {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+
+#----------------------------------------------------------------------------------------------------
+# Qosmos Apps
+#----------------------------------------------------------------------------------------------------
+
+@click.command()
+def qosmos_apps():
+    """ Get Qosmos Applications.                                  
+        \nExample command: ./tools.py qosmos-apps
+    """
+
+    try:
+        api_url = "/device/dpi/qosmos-static/applications"
+
+        url = base_url + api_url
+
+        response = requests.get(url=url, headers=header, verify=False)
+
+        if response.status_code == 200:
+            items = response.json()["data"]
+        else:
+            click.echo("Failed to get list of App " + str(response.text))
+            exit()
+
+        app_headers = ["name", "family", "longname"]
+        table = list()
+        number = 0 
+
+        for item in items:
+            tr = [item['name'], item['family'], item['longname'] ]
+            table.append(tr)
+            number = number + 1
+        
+        table.sort()
+        
+        try:
+            click.echo(tabulate.tabulate(table, app_headers, tablefmt="fancy_grid"))
+        except UnicodeEncodeError:
+                click.echo(tabulate.tabulate(table, app_headers, tablefmt="grid"))
+
+        print("")
+        print("Number of entries: ", number)
+
+    except Exception as e:
+        print('Exception line number: {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+
+#----------------------------------------------------------------------------------------------------
+# Common Apps
+#----------------------------------------------------------------------------------------------------
+
+@click.command()
+def common_apps():
+    """ Get Qosmos Applications.                                  
+        \nExample command: ./tools.py common-apps
+    """
+
+    try:
+        api_url = "/device/dpi/common/applications"
+
+        url = base_url + api_url
+
+        response = requests.get(url=url, headers=header, verify=False)
+
+        if response.status_code == 200:
+            items = response.json()["data"]
+        else:
+            click.echo("Failed to get list of App " + str(response.text))
+            exit()
+
+        app_headers = ["name", "family", "longname"]
+        table = list()
+        number = 0
+
+        for item in items:
+            tr = [item['name'], item['family'], item['longname'] ]
+            number = number + 1
             table.append(tr)
         
         table.sort()
@@ -166,8 +260,12 @@ def nbar_apps():
         except UnicodeEncodeError:
                 click.echo(tabulate.tabulate(table, app_headers, tablefmt="grid"))
 
+        print("")
+        print("Number of entries: ", number)
+
     except Exception as e:
         print('Exception line number: {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -176,7 +274,8 @@ def nbar_apps():
 
 cli.add_command(approute_fields)
 cli.add_command(nbar_apps)
-
+cli.add_command(qosmos_apps)
+cli.add_command(common_apps)
 
 if __name__ == "__main__":
     cli()
