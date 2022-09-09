@@ -33,6 +33,13 @@ export vmanage_username=<username>
 export vmanage_password=<password>
 ```
 
+Example for Windows
+```
+set vmanage_host=<vmanage-ip>
+set vmanage_port=<vmanage-port>
+set vmanage_username=<username>
+set vmanage_password=<password>
+```
 
 ## USAGE
 
