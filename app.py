@@ -390,6 +390,62 @@ def approute_stats():
 
 
 # ----------------------------------------------------------------------------------------------------
+# approute-device
+# ----------------------------------------------------------------------------------------------------
+
+@click.command()
+def approute_device():
+    """ Get Realtime Approute statistics for a specific tunnel for provided router and remote.                                  
+        \nExample command: ./monitor-app-route-stats.py approute-device
+    """
+
+    try:
+
+        rtr1_systemip = input("Enter System IP address : ")
+        rtr2_systemip = input("Enter Remote System IP address : ")
+        color = input("Enter color : ")
+
+        # api_url = "/device/app-route/statistics?remote-system-ip=10.0.0.101&local-color=public-internet&remote-color=public-internet&deviceId=10.0.0.108"
+        api_url = "/device/app-route/statistics?remote-system-ip=%s&local-color=%s&remote-color=%s&deviceId=%s" % (
+            rtr2_systemip, color, color, rtr1_systemip)
+        #api_url = "/device/app-route/statistics?deviceId=%s&local-color=%s"%(rtr1_systemip,color)
+
+        url = base_url + api_url
+
+        response = requests.get(url=url, headers=header, verify=False)
+
+        if response.status_code == 200:
+            app_route_stats = response.json()["data"]
+            app_route_stats_headers = ["vdevice-host-name", "remote-system-ip", "Index",
+                                       "Mean Latency", "Mean Jitter", "Mean Loss", "average-latency", "average-jitter", "loss"]
+            table = list()
+
+            click.echo("\nRealtime App route statistics for %s to %s\n" %
+                       (rtr1_systemip, rtr2_systemip))
+            for item in app_route_stats:
+                tr = [item['vdevice-host-name'], item['remote-system-ip'], item['index'], item['mean-latency'],
+                      item['mean-jitter'], item['mean-loss'], item['average-latency'], item['average-jitter'], item['loss']]
+                table.append(tr)
+            try:
+                click.echo(tabulate.tabulate(
+                    table, app_route_stats_headers, tablefmt="fancy_grid"))
+            except UnicodeEncodeError:
+                click.echo(tabulate.tabulate(
+                    table, app_route_stats_headers, tablefmt="grid"))
+
+        else:
+            click.echo("Failed to retrieve app route statistics\n")
+
+        #click.echo("\n\nRaw data\n\n")
+        # click.echo(app_route_stats)
+
+    except Exception as e:
+        print('Exception line number: {}'.format(
+            sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+
+
+# ----------------------------------------------------------------------------------------------------
 # Authenticate with vManage
 # ----------------------------------------------------------------------------------------------------
 
@@ -432,6 +488,7 @@ cli.add_command(app_list_2)
 cli.add_command(qosmos_list)
 cli.add_command(approute_fields)
 cli.add_command(approute_stats)
+cli.add_command(approute_device)
 
 if __name__ == "__main__":
     cli()
