@@ -1,7 +1,9 @@
 #! /usr/bin/env python
 
 import requests
+import sys
 import os
+import json
 import cmd
 import tabulate
 import click
@@ -152,6 +154,242 @@ def qosmos_list():
 
 
 # ----------------------------------------------------------------------------------------------------
+# approute-fields
+# ----------------------------------------------------------------------------------------------------
+
+@click.command()
+def approute_fields():
+    """ Retrieve App route Aggregation API Query fields.                                  
+        \nExample command: ./monitor-app-route-stats.py approute-fields
+    """
+
+    try:
+        api_url = "/statistics/approute/fields"
+
+        url = base_url + api_url
+
+        response = requests.get(url=url, headers=header, verify=False)
+
+        if response.status_code == 200:
+            items = response.json()
+        else:
+            click.echo(
+                "Failed to get list of App route Query fields " + str(response.text))
+            exit()
+
+        tags = list()
+        cli = cmd.Cmd()
+
+        for item in items:
+            tags.append(item['property'] + "(" + item['dataType'] + ")")
+
+        click.echo(cli.columnize(tags, displaywidth=120))
+
+    except Exception as e:
+        print('Exception line number: {}'.format(
+            sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+
+# ----------------------------------------------------------------------------------------------------
+# approute-stats
+# ----------------------------------------------------------------------------------------------------
+
+@click.command()
+def approute_stats():
+    """ Create Average Approute statistics for all tunnels between provided 2 routers for last 1 hour.                                  
+        \nExample command: ./monitor-app-route-stats.py approute-stats
+    """
+
+    try:
+
+        rtr1_systemip = input("Enter Router-1 System IP address : ")
+        rtr2_systemip = input("Enter Router-2 System IP address : ")
+
+        # Get app route statistics for tunnels from router-1 to router-2
+
+        api_url = "/statistics/approute/aggregation"
+
+        payload = {
+            "query": {
+                "condition": "AND",
+                "rules": [
+                    {
+                        "value": [
+                            "1"
+                        ],
+                        "field": "entry_time",
+                        "type": "date",
+                        "operator": "last_n_hours"
+                    },
+                    {
+                        "value": [
+                            rtr1_systemip
+                        ],
+                        "field": "local_system_ip",
+                        "type": "string",
+                        "operator": "in"
+                    },
+                    {
+                        "value": [
+                            rtr2_systemip
+                        ],
+                        "field": "remote_system_ip",
+                        "type": "string",
+                        "operator": "in"
+                    }
+                ]
+            },
+            "aggregation": {
+                "field": [
+                    {
+                        "property": "name",
+                        "sequence": 1,
+                        "size": 6000
+                    }
+                ],
+                "metrics": [
+                    {
+                        "property": "loss_percentage",
+                        "type": "avg"
+                    },
+                    {
+                        "property": "vqoe_score",
+                        "type": "avg"
+                    },
+                    {
+                        "property": "latency",
+                        "type": "avg"
+                    },
+                    {
+                        "property": "jitter",
+                        "type": "avg"
+                    }
+                ]
+            }
+        }
+
+        url = base_url + api_url
+
+        response = requests.post(
+            url=url, headers=header, data=json.dumps(payload), verify=False)
+
+        if response.status_code == 200:
+            app_route_stats = response.json()["data"]
+            app_route_stats_headers = [
+                "Tunnel name", "vQoE score", "Latency", "Loss percentage", "Jitter"]
+            table = list()
+
+            click.echo("\nAverage App route statistics between %s and %s for last 1 hour\n" % (
+                rtr1_systemip, rtr2_systemip))
+            
+            for item in app_route_stats:
+                tr = [item['name'], item['vqoe_score'], item['latency'],
+                      item['loss_percentage'], item['jitter']]
+                table.append(tr)
+            try:
+                click.echo(tabulate.tabulate(
+                    table, app_route_stats_headers, tablefmt="fancy_grid"))
+            except UnicodeEncodeError:
+                click.echo(tabulate.tabulate(
+                    table, app_route_stats_headers, tablefmt="grid"))
+
+        else:
+            click.echo("Failed to retrieve app route statistics\n")
+
+        # Get app route statistics for tunnels from router-2 to router-1
+
+        payload = {
+            "query": {
+                "condition": "AND",
+                "rules": [
+                    {
+                        "value": [
+                            "1"
+                        ],
+                        "field": "entry_time",
+                        "type": "date",
+                                "operator": "last_n_hours"
+                    },
+                    {
+                        "value": [
+                            rtr2_systemip
+                        ],
+                        "field": "local_system_ip",
+                        "type": "string",
+                                "operator": "in"
+                    },
+                    {
+                        "value": [
+                            rtr1_systemip
+                        ],
+                        "field": "remote_system_ip",
+                        "type": "string",
+                                "operator": "in"
+                    }
+                ]
+            },
+            "aggregation": {
+                "field": [
+                    {
+                        "property": "name",
+                        "sequence": 1,
+                        "size": 6000
+                    }
+                ],
+                "metrics": [
+                    {
+                        "property": "loss_percentage",
+                        "type": "avg"
+                    },
+                    {
+                        "property": "vqoe_score",
+                        "type": "avg"
+                    },
+                    {
+                        "property": "latency",
+                        "type": "avg"
+                    },
+                    {
+                        "property": "jitter",
+                        "type": "avg"
+                    }
+                ]
+            }
+        }
+
+        response = requests.post(
+            url=url, headers=header, data=json.dumps(payload), verify=False)
+
+        if response.status_code == 200:
+            app_route_stats = response.json()["data"]
+            app_route_stats_headers = [
+                "Tunnel name", "vQoE score", "Latency", "Loss percentage", "Jitter"]
+            table = list()
+
+            click.echo("\nAverage App route statistics between %s and %s for last 1 hour\n" % (
+                rtr2_systemip, rtr1_systemip))
+            for item in app_route_stats:
+                tr = [item['name'], item['vqoe_score'], item['latency'],
+                      item['loss_percentage'], item['jitter']]
+                table.append(tr)
+            try:
+                click.echo(tabulate.tabulate(
+                    table, app_route_stats_headers, tablefmt="fancy_grid"))
+            except UnicodeEncodeError:
+                click.echo(tabulate.tabulate(
+                    table, app_route_stats_headers, tablefmt="grid"))
+
+        else:
+            click.echo("Failed to retrieve app route statistics\n")
+
+
+
+    except Exception as e:
+        print('Exception line number: {}'.format(
+            sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+
+# ----------------------------------------------------------------------------------------------------
 # Authenticate with vManage
 # ----------------------------------------------------------------------------------------------------
 
@@ -192,6 +430,8 @@ base_url = "https://%s:%s/dataservice" % (vmanage_host, vmanage_port)
 cli.add_command(app_list)
 cli.add_command(app_list_2)
 cli.add_command(qosmos_list)
+cli.add_command(approute_fields)
+cli.add_command(approute_stats)
 
 if __name__ == "__main__":
     cli()

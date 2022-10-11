@@ -1,4 +1,4 @@
-# Monitor App Route Stats
+# Monitor Applications
 
 
 ## INSTALLATION
@@ -6,7 +6,7 @@
 ### Requirements
 To use this application you will need:
 - Python 3.7+
-- Cisco SD-WAN 18.3+
+- Cisco SD-WAN 20.6.4+
 
 ### Install and Setup
 Clone the code to local machine.
@@ -60,17 +60,17 @@ Once the query conditions are determined, you then provide the fields, histogram
 
 ```bash
 # python monitor-app-route-stats.py
-Usage: monitor-app-route-stats.py [OPTIONS] COMMAND [ARGS]...
+Usage: app.py [OPTIONS] COMMAND [ARGS]...
 
-  Command line tool for monitoring Application Aware Routing
-  Statistics(Latency/Loss/Jitter/vQoE Score).
+  Command line tool to monitor Applications
 
 Options:
   --help  Show this message and exit.
 
 Commands:
+  app-list Retrieve NBAR application list
+  qosmos-list Retrieve Qosmos application list
   approute-fields  Retrieve App route Aggregation API Query fields.
-  approute-report  Create Average Approute statistics report.
   approute-stats   Create Average Approute statistics for all tunnels...
 
 #
@@ -182,86 +182,3 @@ Average App route statistics between 10.0.0.101 and 10.0.0.108 for last 1 hour
 #
 ```
 
-
-
-
-
-### Example-3 - approute-report
-
-The following query retrieves the application route statistics between the start date and end date as query conditions so you get the average latency/loss/jitter between those two intervals.
-(Note that only the UTC timezone is supported in query conditions so you need to convert the user input to UTC timezone if needed)
-
-Here, the statistics are aggregated in 24 hour intervals so with that you can get a report of statistics for provided start and end dates with the average of statistics for 24 hour interval.
-
-Code snippet:
-```json
-{
-      "query": {
-          "condition": "AND",
-          "rules": [
-          {
-              "value": [
-                        start_date+"T00:00:00 UTC",
-                        end_date+"T23:59:59 UTC"
-                       ],
-              "field": "entry_time",
-              "type": "date",
-              "operator": "between"
-          },
-          {
-              "value": [
-                      hub["system_ip"]
-                      ],
-              "field": "local_system_ip",
-              "type": "string",
-              "operator": "in"
-          }
-          ]
-      },
-      "aggregation": {
-          "field": [
-          {
-              "property": "name",
-              "size": 6000,
-              "sequence": 1
-          },
-          {
-              "property": "proto",
-              "sequence": 2
-          },
-          {
-              "property": "local_system_ip",
-              "sequence": 3
-          },
-          {
-              "property": "remote_system_ip",
-              "sequence": 4
-          }
-          ],
-          "histogram": {
-          "property": "entry_time",
-          "type": "hour",
-          "interval": 24,
-          "order": "asc"
-          },
-          "metrics": [
-          {
-              "property": "latency",
-              "type": "avg"
-          },
-          {
-              "property": "jitter",
-              "type": "avg"
-          },
-          {
-              "property": "loss_percentage",
-              "type": "avg"
-          },
-          {
-              "property": "vqoe_score",
-              "type": "avg"
-          }
-          ]
-      }
-      }
-      ```
