@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 import requests
 import sys
@@ -7,39 +7,9 @@ import json
 import cmd
 import tabulate
 import click
+from vmanage import Authentication
 
 requests.packages.urllib3.disable_warnings()
-
-
-# ----------------------------------------------------------------------------------------------------
-# vManage Authentication
-# ----------------------------------------------------------------------------------------------------
-
-def get_jsessionid(host,port,username,password):
-    api = "/j_security_check"
-    base_url = "https://%s:%s" % (host, port)
-    url = base_url + api
-    payload = {'j_username': username, 'j_password': password}
-    response = requests.post(url=url, data=payload, verify=False)
-    try:
-        cookies = response.headers["Set-Cookie"]
-        jsessionid = cookies.split(";")
-        return (jsessionid[0])
-    except:
-        if logger is not None:
-            logger.error("No valid JSESSION ID returned\n")
-        exit()
-
-def get_token(host, port, jsessionid):
-    headers = {'Cookie': jsessionid}
-    base_url = "https://%s:%s" % (host, port)
-    api = "/dataservice/client/token"
-    url = base_url + api
-    response = requests.get(url=url, headers=headers, verify=False)
-    if response.status_code == 200:
-        return (response.text)
-    else:
-        return None
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -48,7 +18,7 @@ def get_token(host, port, jsessionid):
 
 @click.group()
 def cli():
-    """Command line tool for to collect application names).
+    """Command line tool for to collect application names.
     """
     pass
 
@@ -59,8 +29,8 @@ def cli():
 
 @click.command()
 def app_list():
-    """ Retrieve the list of Applications.                                  
-        \nExample command: ./app.py app-list
+    """ Retrieve the list of Applications.
+        Example command: ./app.py app-list
     """
     print("app-list")
 
@@ -75,7 +45,7 @@ def app_list():
         click.echo(
             "Failed to get list of Apps " + str(response.text))
         exit()
-    
+
     table = list()
     cli = cmd.Cmd()
 
@@ -93,8 +63,8 @@ def app_list():
 
 @click.command()
 def app_list_2():
-    """ Retrieve the list of Applications.                                  
-        \nExample command: ./app.py app-list-2
+    """ Retrieve the list of Applications.
+        Example command: ./app.py app-list-2
     """
     print("app-list-2")
 
@@ -102,13 +72,13 @@ def app_list_2():
     url = base_url + api_url
 
     response = requests.get(url=url, headers=header, verify=False)
-    
+
     if response.status_code == 200:
         items = response.json()    
     else:
         click.echo("Failed to get list of Apps " + str(response.text))
         exit()
-    
+
     table = list()
     cli = cmd.Cmd()
 
@@ -125,8 +95,8 @@ def app_list_2():
 
 @click.command()
 def qosmos_list():
-    """ Retrieve the list of Qosmos Applications.                                  
-        \nExample command: ./app.py qosmos-list
+    """ Retrieve the list of Qosmos Applications.
+        Example command: ./app.py qosmos-list
     """
     print("qosmos-list")
 
@@ -159,8 +129,8 @@ def qosmos_list():
 
 @click.command()
 def approute_fields():
-    """ Retrieve App route Aggregation API Query fields.                                  
-        \nExample command: ./monitor-app-route-stats.py approute-fields
+    """ Retrieve App route Aggregation API Query fields.
+        Example command: ./monitor-app-route-stats.py approute-fields
     """
 
     try:
@@ -196,8 +166,8 @@ def approute_fields():
 
 @click.command()
 def approute_stats():
-    """ Create Average Approute statistics for all tunnels between provided 2 routers for last 1 hour.                                  
-        \nExample command: ./monitor-app-route-stats.py approute-stats
+    """ Create Average Approute statistics for all tunnels between provided 2 routers for last 1 hour.
+        Example command: ./monitor-app-route-stats.py approute-stats
     """
 
     try:
@@ -395,8 +365,8 @@ def approute_stats():
 
 @click.command()
 def approute_device():
-    """ Get Realtime Approute statistics for a specific tunnel for provided router and remote.                                  
-        \nExample command: ./monitor-app-route-stats.py approute-device
+    """ Get Realtime Approute statistics for a specific tunnel for provided router and remote.
+        Example command: ./monitor-app-route-stats.py approute-device
     """
 
     try:
@@ -436,7 +406,7 @@ def approute_device():
         else:
             click.echo("Failed to retrieve app route statistics\n")
 
-        #click.echo("\n\nRaw data\n\n")
+        # click.echo("\n\nRaw data\n\n")
         # click.echo(app_route_stats)
 
     except Exception as e:
@@ -446,7 +416,7 @@ def approute_device():
 
 
 # ----------------------------------------------------------------------------------------------------
-# Authenticate with vManage
+# Get Parameters
 # ----------------------------------------------------------------------------------------------------
 
 vmanage_host = os.environ.get("vmanage_host")
@@ -467,8 +437,14 @@ if vmanage_host is None or vmanage_port is None or vmanage_username is None or v
     print("export vmanage_password=admin")
     exit()
 
-jsessionid = get_jsessionid(vmanage_host, vmanage_port, vmanage_username, vmanage_password)
-token = get_token(vmanage_host, vmanage_port, jsessionid)
+
+# ----------------------------------------------------------------------------------------------------
+# Authenticate with vManage
+# ----------------------------------------------------------------------------------------------------
+
+vmanage = Authentication(vmanage_host, vmanage_port, vmanage_username, vmanage_password)
+jsessionid = vmanage.login()
+token = vmanage.get_token()
 
 if token is not None:
     header = {'Content-Type': "application/json",
