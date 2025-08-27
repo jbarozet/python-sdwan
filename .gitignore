@@ -21,10 +21,10 @@ __pycache__
 *.pyc
 __pycache__
 #--- Project ----------------
+.DS_Store
+crash.log
 **/_archives
 payloads
 NOTES.md
 init.sh
-.DS_Store
-crash.log
-.DS_Store
+docs_internal
