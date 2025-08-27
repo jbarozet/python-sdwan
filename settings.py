@@ -1,17 +1,13 @@
 #! /usr/bin/env python
 
 import json
-import logging
 import os
 
 import click
 import requests
-import urllib3
 
 # Import the new function from session.py
-from session import (
-    get_authenticated_session_details,  # Removed Authentication as it's now encapsulated
-)
+from session import get_authenticated_session_details
 
 
 # -----------------------------------------------------------------------------
@@ -110,7 +106,6 @@ base_url, header = get_authenticated_session_details()
 # -----------------------------------------------------------------------------
 # Run commands
 # -----------------------------------------------------------------------------
-
 cli.add_command(get_vbond)
 cli.add_command(get_org)
 

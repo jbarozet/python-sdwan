@@ -10,14 +10,14 @@ import tabulate
 from session import get_authenticated_session_details
 
 
-# ---------------------------------------------------------
+# -----------------------------------------------------------------------------
 @click.group()
 def cli():
     """Command line tool for managing users on SD-WAN Manager."""
     pass
 
 
-# ---------------------------------------------------------
+# -----------------------------------------------------------------------------
 def save_json(payload: dict, filename: str = "payload"):
     """Save json response payload to a file
 
@@ -42,7 +42,7 @@ def save_json(payload: dict, filename: str = "payload"):
         json.dump(payload, file, indent=4)
 
 
-# ----------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 @click.command()
 def ls():
     """List all users"""
@@ -81,6 +81,7 @@ def ls():
         sys.exit(1)
 
 
+# -----------------------------------------------------------------------------
 @click.command()
 def add():
     """Add a user"""
@@ -125,6 +126,7 @@ def add():
         sys.exit(1)
 
 
+# -----------------------------------------------------------------------------
 @click.command()
 def delete():
     """Delete a user"""
