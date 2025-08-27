@@ -1,5 +1,4 @@
-.DS_Store
-# Environments
+#--- Environment ------------
 .env
 .venv
 env/
@@ -8,10 +7,24 @@ ENV/
 env.bak/
 venv.bak/
 **/venv/*
+#--- IDE project files ------
+.vscode/
+*.code-workspace
+.zed
+.ruff*
+.flake8
+uv.lock
+#--- python -----------------
 __pycache__
-# Project
-_archives
-NOTES.md
+*.py[cod]
+*$py.class
+*.pyc
+__pycache__
+#--- Project ----------------
+**/_archives
 payloads
+NOTES.md
 init.sh
-init.sh
+.DS_Store
+crash.log
+.DS_Store
