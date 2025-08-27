@@ -9,7 +9,7 @@ The following sections describe the two authentication methods:
 
 ## JWT-based Authentication
 
-![jwt-authentication](images/authentication-jwt-based.jpg)
+<img src="images/authentication-jwt-based.jpg" alt="jwt-authentication" width="600"/>
 
 ### Log in with a Username and Password
 
@@ -146,7 +146,8 @@ HTTP Response Body:
 > 2. With the JWT-based authentication method, there is no API endpoint for logging out. Request the token with a short expiration time to ensure access and refresh tokens do not remain valid after completing requests to all necessary API endpoints.
 
 ## Session-based Authentication
-![session-based authentication](images/authentication-session-based.jpg)
+
+<img src="images/authentication-session-based.jpg" alt="authentication-session-based" width="600"/>
 
 Cisco Catalyst SD-WAN Manager still supports the traditional REST API access control that is based on sessions (JSESSIONIDs). With this authentication method, Cisco Catalyst SD-WAN Manager creates a session for each user after successful login. 
 
