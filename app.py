@@ -10,40 +10,63 @@ import requests
 import tabulate
 import urllib3
 
-from session import Authentication
-
-urllib3.disable_warnings()
-
-
-# ----------------------------------------------------------------------------------------------------
-# Click CLI
-# ----------------------------------------------------------------------------------------------------
+# Import the new function from session.py
+from session import get_authenticated_session_details
 
 
+# -----------------------------------------------------------------------------
 @click.group()
 def cli():
-    """Command line tool for to collect application names."""
+    """Command line tool for to collect application names and tunnel performances"""
     pass
 
 
-# ----------------------------------------------------------------------------------------------------
-# app-list
-# ----------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+def save_json(payload: str, filename: str = "payload"):
+    """
+    Save json response payload to a file
+
+    Args:
+        payload: JSON response payload
+        filename: filename for saved files (default: "payload")
+    """
+
+    data_dir = "./payloads/"
+    filename = "".join([data_dir, f"{filename}.json"])
+
+    # Create payload folder
+    if not os.path.exists(data_dir):
+        os.mkdir(data_dir)
+        print("~~~ Folder %s created!" % data_dir)
+    else:
+        print("~~~ Folder %s already exists" % data_dir)
+
+    # Dump entire payload to file
+    print(f"~~~ Saving payload in {filename}")
+    with open(filename, "w") as file:
+        json.dump(payload, file, indent=4)
 
 
+# -----------------------------------------------------------------------------
 @click.command()
 def app_list():
-    """Retrieve the list of Applications.
-    Example command: ./app.py app-list
     """
-    print("app-list")
+    Retrieve the list of Applications.
+    Example command: python app.py app-list
+    """
+
+    print("Application List ")
 
     api_url = "/device/dpi/application-mapping"
     url = base_url + api_url
 
     response = requests.get(url=url, headers=header, verify=False)
     if response.status_code == 200:
-        items = response.json()
+        payload = response.json()
+        data = payload["data"]
+        # Save the payload and data to files
+        save_json(payload, "applications_all")
+        save_json(data, "applications_data")
         app_headers = ["App name", "Family", "ID"]
     else:
         click.echo("Failed to get list of Apps " + str(response.text))
@@ -52,25 +75,22 @@ def app_list():
     table = list()
     cli = cmd.Cmd()
 
-    for item in items["data"]:
+    for item in data:
         tr = [item["name"], item["family"], item["appId"]]
         table.append(tr)
 
     click.echo(tabulate.tabulate(table, app_headers, tablefmt="fancy_grid"))
 
 
-# ----------------------------------------------------------------------------------------------------
-# app-list-2
-# Display app-name and family in multi-column view
-# ----------------------------------------------------------------------------------------------------
-
-
+# -----------------------------------------------------------------------------
 @click.command()
-def app_list_2():
-    """Retrieve the list of Applications.
-    Example command: ./app.py app-list-2
+def app_list2():
     """
-    print("app-list-2")
+    Retrieve the list of Applications.
+    Display app-name and family in multi-column view
+    Example command: python app.py app-list2
+    """
+    print("Application List (2)")
 
     api_url = "/device/dpi/application-mapping"
     url = base_url + api_url
@@ -78,7 +98,11 @@ def app_list_2():
     response = requests.get(url=url, headers=header, verify=False)
 
     if response.status_code == 200:
-        items = response.json()
+        payload = response.json()
+        data = payload["data"]
+        # Save the payload and data to files
+        save_json(payload, "applications_all")
+        save_json(data, "applications_data")
     else:
         click.echo("Failed to get list of Apps " + str(response.text))
         exit()
@@ -86,31 +110,32 @@ def app_list_2():
     table = list()
     cli = cmd.Cmd()
 
-    for item in items["data"]:
+    for item in data:
         # print(item['name'])
         table.append(item["name"] + "(" + item["family"] + ")")
 
     click.echo(cli.columnize(table, displaywidth=120))
 
 
-# ----------------------------------------------------------------------------------------------------
-# qosmos-list
-# ----------------------------------------------------------------------------------------------------
-
-
+# -----------------------------------------------------------------------------
 @click.command()
-def qosmos_list():
-    """Retrieve the list of Qosmos Applications.
-    Example command: ./app.py qosmos-list
+def app_qosmos():
     """
-    print("qosmos-list")
+    Retrieve the list of Qosmos Applications (original Viptela classification engine)
+    Example command: python app.py app-qosmos
+    """
+    print("Application List (qosmos)")
 
     api_url = "/device/dpi/qosmos-static/applications"
     url = base_url + api_url
 
     response = requests.get(url=url, headers=header, verify=False)
     if response.status_code == 200:
-        items = response.json()
+        payload = response.json()
+        data = payload["data"]
+        # Save the payload and data to files
+        save_json(payload, "qosmos_applications_all")
+        save_json(data, "qosmos_applications_data")
         app_headers = ["App name", "Family", "ID"]
     else:
         click.echo("Failed to get list of Apps " + str(response.text))
@@ -119,33 +144,31 @@ def qosmos_list():
     table = list()
     cli = cmd.Cmd()
 
-    for item in items["data"]:
+    for item in data:
         tr = [item["name"], item["family"], item["appId"]]
         table.append(tr)
 
     click.echo(tabulate.tabulate(table, app_headers, tablefmt="fancy_grid"))
 
 
-# ----------------------------------------------------------------------------------------------------
-# approute-fields
-# ----------------------------------------------------------------------------------------------------
-
-
+# -----------------------------------------------------------------------------
 @click.command()
 def approute_fields():
-    """Retrieve App route Aggregation API Query fields.
-    Example command: ./monitor-app-route-stats.py approute-fields
+    """
+    Retrieve App route Aggregation API Query fields.
+    Example command: python app.py approute-fields
     """
 
     try:
         api_url = "/statistics/approute/fields"
-
         url = base_url + api_url
 
         response = requests.get(url=url, headers=header, verify=False)
 
         if response.status_code == 200:
-            items = response.json()
+            payload = response.json()
+            # Save the payload and data to files
+            save_json(payload, "approute-fields")
         else:
             click.echo(
                 "Failed to get list of App route Query fields " + str(response.text)
@@ -155,7 +178,7 @@ def approute_fields():
         tags = list()
         cli = cmd.Cmd()
 
-        for item in items:
+        for item in payload:
             tags.append(item["property"] + "(" + item["dataType"] + ")")
 
         click.echo(cli.columnize(tags, displaywidth=120))
@@ -168,15 +191,12 @@ def approute_fields():
         )
 
 
-# ----------------------------------------------------------------------------------------------------
-# approute-stats
-# ----------------------------------------------------------------------------------------------------
-
-
+# -----------------------------------------------------------------------------
 @click.command()
 def approute_stats():
-    """Create Average Approute statistics for all tunnels between provided 2 routers for last 1 hour.
-    Example command: ./monitor-app-route-stats.py approute-stats
+    """
+    Create Average Approute statistics for all tunnels between provided 2 routers for last 1 hour.
+    Example command: python app.py approute-stats
     """
 
     try:
@@ -354,15 +374,12 @@ def approute_stats():
         )
 
 
-# ----------------------------------------------------------------------------------------------------
-# approute-device
-# ----------------------------------------------------------------------------------------------------
-
-
+# -----------------------------------------------------------------------------
 @click.command()
 def approute_device():
-    """Get Realtime Approute statistics for a specific tunnel for provided router and remote.
-    Example command: ./monitor-app-route-stats.py approute-device
+    """
+    Get Realtime Approute statistics for a specific tunnel for provided router and remote.
+    Example command: python app.py approute-device
     """
 
     try:
@@ -438,64 +455,19 @@ def approute_device():
         )
 
 
-# ----------------------------------------------------------------------------------------------------
-# Get Parameters
-# ----------------------------------------------------------------------------------------------------
-vmanage_host = os.environ.get("vmanage_host")
-vmanage_port = os.environ.get("vmanage_port")
-vmanage_username = os.environ.get("vmanage_username")
-vmanage_password = os.environ.get("vmanage_password")
-
-if (
-    vmanage_host is None
-    or vmanage_port is None
-    or vmanage_username is None
-    or vmanage_password is None
-):
-    print(
-        "For Windows Workstation, vManage details must be set via environment variables using below commands"
-    )
-    print("set vmanage_host=10.10.1.1")
-    print("set vmanage_port=8443")
-    print("set vmanage_username=admin")
-    print("set vmanage_password=admin")
-    print(
-        "For MAC OSX Workstation, vManage details must be set via environment variables using below commands"
-    )
-    print("export vmanage_host=10.10.1.1")
-    print("export vmanage_port=8443")
-    print("export vmanage_username=admin")
-    print("export vmanage_password=admin")
-    exit()
-
-
-# ----------------------------------------------------------------------------------------------------
-# Authenticate with vManage
-# ----------------------------------------------------------------------------------------------------
-
-vmanage = Authentication(vmanage_host, vmanage_port, vmanage_username, vmanage_password)
-jsessionid = vmanage.login()
-token = vmanage.get_token()
-
-if token is not None:
-    header = {
-        "Content-Type": "application/json",
-        "Cookie": jsessionid,
-        "X-XSRF-TOKEN": token,
-    }
-else:
-    header = {"Content-Type": "application/json", "Cookie": jsessionid}
-
-base_url = "https://%s:%s/dataservice" % (vmanage_host, vmanage_port)
+# -----------------------------------------------------------------------------
+# Global variables for base_url and header, obtained from session.py
+# This will be executed once when the script starts
+# -----------------------------------------------------------------------------
+base_url, header = get_authenticated_session_details()
 
 
 # ----------------------------------------------------------------------------------------------------
 # Run commands
 # ----------------------------------------------------------------------------------------------------
-
 cli.add_command(app_list)
-cli.add_command(app_list_2)
-cli.add_command(qosmos_list)
+cli.add_command(app_list2)
+cli.add_command(app_qosmos)
 cli.add_command(approute_fields)
 cli.add_command(approute_stats)
 cli.add_command(approute_device)
