@@ -1,5 +1,8 @@
 # SD-WAN Manager API Examples
 
+This section provides practical Python examples demonstrating authentication to SD-WAN Manager and subsequent API interactions.
+Please note these examples are for demonstration purposes only and not production-ready.
+
 ## Install and Setup
 
 Clone the code to local machine.
@@ -10,35 +13,57 @@ git clone https://github.com/jbarozet/python-sdwan.git
 
 ## Setup Python Virtual Environment
 
+Install uv by running the following command in Terminal:
+
+`curl -LsSf https://astral.sh/uv/install.sh | sh`
+
+Initialize and install dependancies:
+
 ```bash
-uv sync
-source venv/bin/activate
+cd python-sdwan
+uv venv .venv
+source .venv/bin/activate
+uv pip install .
 ```
 
-## Setup local environment variables to provide vManage instance details.
+## Setup local environment variables to provide manager instance details
+
+You need to define the SD-WAN Manager parameters to authenticate.
 
 Example for MacOSX:
 
 ```bash
-export vmanage_host=<vmanage-ip>
-export vmanage_port=<vmanage-port>
-export vmanage_username=<username>
-export vmanage_password=<password>
+export manager_host=10.0.0.100
+export manager_port=443
+export manager_username=sdwan
+export manager_password=mysuperpassword
 ```
 
 Example for Windows
 
 ```shell
-set vmanage_host=<vmanage-ip>
-set vmanage_port=<vmanage-port>
-set vmanage_username=<username>
-set vmanage_password=<password>
+set manager_host=10.0.0.100
+set manager_port=443
+set manager_username=sdwan
+set manager_password=mysuperpassword
+```
+
+The easiest way to run the tool is to provide all the lab variables in a init file and source that file.
+The example file below contains all the variables required to run all the tasks.
+
+```shell
+% cat init.sh
+export manager_host=10.0.0.100
+export manager_port=443
+export manager_username=sdwan
+export manager_password=mysuperpassword
+% source init.sh
 ```
 
 ## Documentation
 
 Refer to:
 
-- [Getting Started](./01-Getting-Started.md)
-- [Authentication](./02-Authentication.md)
-- [Usage](./03-Usage.md)
+- [Getting Started](./docs/01-Getting-Started.md)
+- [Authentication](./docs/02-Authentication.md)
+- [Usage](./docs/monitoring.md)
