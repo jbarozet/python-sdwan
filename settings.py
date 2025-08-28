@@ -6,8 +6,8 @@ import os
 import click
 import requests
 
-# Import the new function from session.py
-from session import get_authenticated_session_details
+# Import the new unified Manager class and the credentials function
+from manager import Manager, get_manager_credentials_from_env
 
 
 # -----------------------------------------------------------------------------
@@ -49,25 +49,37 @@ def get_org():
     Get SD_WAN Manager organization
     """
 
-    api_url = "/settings/configuration/organization"
-    url = base_url + api_url
+    api_path = "/settings/configuration/organization"
 
-    # Using session.verify for certificate validation, so verify=False might not be strictly needed here
-    # but kept for consistency with original code's explicit disable.
-    response = requests.get(url=url, headers=header, verify=False)
-
-    if response.status_code == 200:
-        payload = response.json()
-        data = payload["data"]
-        # Save the payload and data to files
+    # Fetch API endpoint for org name
+    try:
+        payload = manager._api_get(api_path)
+        data = payload.get("data", [])
         save_json(payload, "org_settings_all")
         save_json(data, "org_settings_data")
         for item in data:
             org = item["org"]
         click.echo(f"Organization: {org}")
-    else:
-        click.echo("Failed to get org name " + str(response.text))
-        exit()
+
+    except requests.exceptions.HTTPError as e:
+        print(f"Error fetching users: HTTP Error {e.response.status_code}")
+        print(f"Response: {e.response.text}")
+        return
+    except requests.exceptions.ConnectionError:
+        print("Error fetching users: Connection failed.")
+        print(
+            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
+        )
+        return
+    except requests.exceptions.Timeout:
+        print(f"Error fetching users: The request timed out.")
+        print("The SD-WAN Manager might be slow to respond or unreachable.")
+        return
+    except requests.exceptions.RequestException as e:
+        print(f"An unexpected error occurred while fetching users: {e}")
+        if hasattr(e, "response") and e.response is not None:
+            print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+        return
 
 
 # -----------------------------------------------------------------------------
@@ -77,30 +89,45 @@ def get_vbond():
     Get vBond IP or name
     """
 
-    api_url = "/settings/configuration/device"
-    url = base_url + api_url
+    api_path = "/settings/configuration/device"
 
-    response = requests.get(url=url, headers=header, verify=False)
-    if response.status_code == 200:
-        payload = response.json()
-        data = payload["data"]
+    # Fetch API endpoint for org name
+    try:
+        payload = manager._api_get(api_path)
+        data = payload.get("data", [])
         save_json(payload, "vbond_settings_all")
         save_json(data, "vbond_settings_data")
         for item in data:
             vbond = item["domainIp"]
         click.echo(f"vBond: {vbond}")
-    else:
-        click.echo("Failed to get vBond IP or name " + str(response.text))
-        exit()
+
+    except requests.exceptions.HTTPError as e:
+        print(f"Error fetching users: HTTP Error {e.response.status_code}")
+        print(f"Response: {e.response.text}")
+        return
+    except requests.exceptions.ConnectionError:
+        print("Error fetching users: Connection failed.")
+        print(
+            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
+        )
+        return
+    except requests.exceptions.Timeout:
+        print(f"Error fetching users: The request timed out.")
+        print("The SD-WAN Manager might be slow to respond or unreachable.")
+        return
+    except requests.exceptions.RequestException as e:
+        print(f"An unexpected error occurred while fetching users: {e}")
+        if hasattr(e, "response") and e.response is not None:
+            print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+        return
 
 
 # -----------------------------------------------------------------------------
-# Global variables for base_url and header, obtained from session.py
-# This will be executed once when the script starts
+# Create session with Cisco Catalyst SD-WAN Manager
 # -----------------------------------------------------------------------------
-# Replaced the manual environment variable retrieval and authentication logic
-# with the centralized function from session.py
-base_url, header = get_authenticated_session_details()
+print("\n--- Authenticating to SD-WAN Manager ---")
+host, port, user, password = get_manager_credentials_from_env()
+manager = Manager(host, port, user, password)
 
 
 # -----------------------------------------------------------------------------

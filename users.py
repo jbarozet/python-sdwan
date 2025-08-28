@@ -6,8 +6,8 @@ import click
 import requests
 import tabulate
 
-# Import the new function from session.py
-from session import get_authenticated_session_details
+# Import the new unified Manager class and the credentials function
+from manager import Manager, get_manager_credentials_from_env
 
 
 # -----------------------------------------------------------------------------
@@ -47,38 +47,49 @@ def save_json(payload: dict, filename: str = "payload"):
 def ls():
     """List all users"""
 
-    api_url = "/admin/user"
-    url = base_url + api_url
+    # API endpoint for users
+    api_path = "/admin/user"
 
+    # Fetch users
     try:
-        response = requests.get(url=url, headers=header, verify=False)
-        response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
-
-        payload = response.json()
-        data = payload.get("data", [])  # Use .get with default for safety
-
-        save_json(payload, "users_all")
+        payload = manager._api_get(api_path)
+        data = payload.get("data", [])
+        save_json(payload, "users_headers_and_data")
         save_json(data, "users_data")
 
         headers = ["Username", "Group"]
         table = []
         for item in data:
             tr = [
-                item.get("userName", "N/A"),  # Use .get for safety
-                ", ".join(item.get("group", ["N/A"])),  # Join list of groups
+                item.get("userName", "N/A"),
+                ", ".join(item.get("group", ["N/A"])),
             ]
             table.append(tr)
 
-        if table:  # Only print table if there's data
+        if table:
             click.echo(tabulate.tabulate(table, headers, tablefmt="fancy_grid"))
         else:
             click.echo("No users found or data is empty.")
 
+    except requests.exceptions.HTTPError as e:
+        print(f"Error fetching users: HTTP Error {e.response.status_code}")
+        print(f"Response: {e.response.text}")
+        return
+    except requests.exceptions.ConnectionError:
+        print(f"Error fetching users: Connection failed.")
+        print(
+            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
+        )
+        return
+    except requests.exceptions.Timeout:
+        print(f"Error fetching users: The request timed out.")
+        print("The SD-WAN Manager might be slow to respond or unreachable.")
+        return
     except requests.exceptions.RequestException as e:
-        click.echo(f"Failed to get user list: {e}")
-        if "response" in locals() and response is not None:
-            click.echo(f"Status: {response.status_code}, Response: {response.text}")
-        sys.exit(1)
+        print(f"An unexpected error occurred while fetching users: {e}")
+        if hasattr(e, "response") and e.response is not None:
+            print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+        return
 
 
 # -----------------------------------------------------------------------------
@@ -86,12 +97,11 @@ def ls():
 def add():
     """Add a user"""
 
-    api_url = "/admin/user"
-    url = base_url + api_url
+    api_path = "/admin/user"
 
     print("\n~~~ Adding user")
 
-    username = click.prompt("Enter username to add", type=str)
+    username_input = click.prompt("Enter username to add", type=str)
     password = click.prompt(
         "Enter password for the new user", type=str, hide_input=True
     )
@@ -103,8 +113,8 @@ def add():
     groups = [g.strip() for g in group_input.split(",")]
 
     user_payload = {
-        "userName": username,
-        "description": f"User {username} created via CLI",
+        "userName": username_input,
+        "description": f"User {username_input} created via CLI",
         "locale": "en_US",
         "group": groups,
         "password": password,
@@ -112,18 +122,38 @@ def add():
     }
 
     try:
-        response = requests.post(
-            url=url, json=user_payload, headers=header, verify=False
+        response = manager._api_post(api_path, payload=user_payload)
+
+        confirmed_username = (
+            response.get("userName") if isinstance(response, dict) else None
         )
-        response.raise_for_status()  # Raise an exception for HTTP errors
 
-        click.echo(f"User '{username}' successfully created.")
+        if confirmed_username:
+            click.echo(f"User '{confirmed_username}' successfully created.")
+        else:
+            click.echo(f"User '{username_input}' successfully created.")
 
+    except requests.exceptions.HTTPError as e:
+        print(
+            f"Error adding user '{username_input}': HTTP Error {e.response.status_code}"
+        )
+        print(f"Response: {e.response.text}")
+        return
+    except requests.exceptions.ConnectionError:
+        print(f"Error adding user '{username_input}': Connection failed.")
+        print(
+            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
+        )
+        return
+    except requests.exceptions.Timeout:
+        print(f"Error adding user '{username_input}': The request timed out.")
+        print("The SD-WAN Manager might be slow to respond or unreachable.")
+        return
     except requests.exceptions.RequestException as e:
-        click.echo(f"Failed to add user '{username}': {e}")
-        if "response" in locals() and response is not None:
-            click.echo(f"Status: {response.status_code}, Response: {response.text}")
-        sys.exit(1)
+        print(f"An unexpected error occurred while adding user '{username_input}': {e}")
+        if hasattr(e, "response") and e.response is not None:
+            print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+        return
 
 
 # -----------------------------------------------------------------------------
@@ -134,27 +164,40 @@ def delete():
     print("\n~~~ Deleting user")
     username = click.prompt("Enter username to delete", type=str)
 
-    api_url = f"/admin/user/{username}"
-    url = base_url + api_url
+    api_path = f"/admin/user/{username}"
 
     try:
-        response = requests.delete(url=url, headers=header, verify=False)
-        response.raise_for_status()  # Raise an exception for HTTP errors
-
+        response = manager._api_delete(api_path)
         click.echo(f"User '{username}' successfully deleted.")
+        # The _api_delete method returns a dict with a 'message' key if no JSON content
+        if "message" in response:
+            click.echo(f"API Confirmation: {response['message']}")
 
+    except requests.exceptions.HTTPError as e:
+        print(f"Error deleting user '{username}': HTTP Error {e.response.status_code}")
+        print(f"Response: {e.response.text}")
+        sys.exit(1)  # Exit on critical failure for delete
+    except requests.exceptions.ConnectionError:
+        print(f"Error deleting user '{username}': Connection failed.")
+        print("Please check network connectivity or manager host/port.")
+        sys.exit(1)
+    except requests.exceptions.Timeout:
+        print(f"Error deleting user '{username}': The request timed out.")
+        print("The SD-WAN Manager might be slow to respond or unreachable.")
+        sys.exit(1)
     except requests.exceptions.RequestException as e:
-        click.echo(f"Failed to delete user '{username}': {e}")
-        if "response" in locals() and response is not None:
-            click.echo(f"Status: {response.status_code}, Response: {response.text}")
+        print(f"An unexpected error occurred while deleting user '{username}': {e}")
+        if hasattr(e, "response") and e.response is not None:
+            print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         sys.exit(1)
 
 
 # -----------------------------------------------------------------------------
-# Global variables for base_url and header, obtained from session.py
-# This will be executed once when the script starts
+# Create session with Cisco Catalyst SD-WAN Manager
 # -----------------------------------------------------------------------------
-base_url, header = get_authenticated_session_details()
+print("\n--- Authenticating to SD-WAN Manager ---")
+host, port, user, password = get_manager_credentials_from_env()
+manager = Manager(host, port, user, password)
 
 # -----------------------------------------------------------------------------
 # Run commands
