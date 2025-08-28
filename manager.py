@@ -398,7 +398,71 @@ class SDWANProfileTable:
 
 
 # -----------------------------------------------------------------------------
+class Device:
+    """
+    Represents a device associated with a configuration group.
+    """
+
+    def __init__(self, device_data: dict):
+        self.id = device_data.get("id")
+        self.site_name = device_data.get("site-name")
+        self.host_name = device_data.get("host-name")
+        self.site_id = device_data.get("site-id")
+        self.device_model = device_data.get("deviceModel")
+        self.tags = device_data.get("tags", [])
+        self.device_lock = device_data.get("device-lock")
+        self.added_by_rule = device_data.get("addedByRule")
+        self.config_status_message = device_data.get("configStatusMessage")
+        self.device_ip = device_data.get("deviceIP")
+        self.config_group_last_updated_on = device_data.get("configGroupLastUpdatedOn")
+        self.unsupported_features = device_data.get("unsupportedFeatures", [])
+        self.hierarchy_name_path = device_data.get("hierarchyNamePath")
+        self.hierarchy_type_path = device_data.get("hierarchyTypePath")
+        self.group_topology_label = device_data.get("groupTopologyLabel")
+        self.config_group_up_to_date = device_data.get("configGroupUpToDate")
+        self.is_deployable = device_data.get("isDeployable")
+        self.license_status = device_data.get("licenseStatus")
+
+    def to_dict(self):
+        """Converts the Device object to a dictionary for JSON serialization."""
+        return {
+            "id": self.id,
+            "site-name": self.site_name,
+            "host-name": self.host_name,
+            "site-id": self.site_id,
+            "deviceModel": self.device_model,
+            "tags": self.tags,
+            "device-lock": self.device_lock,
+            "addedByRule": self.added_by_rule,
+            "configStatusMessage": self.config_status_message,
+            "deviceIP": self.device_ip,
+            "configGroupLastUpdatedOn": self.config_group_last_updated_on,
+            "unsupportedFeatures": self.unsupported_features,
+            "hierarchyNamePath": self.hierarchy_name_path,
+            "hierarchyTypePath": self.hierarchy_type_path,
+            "groupTopologyLabel": self.group_topology_label,
+            "configGroupUpToDate": self.config_group_up_to_date,
+            "isDeployable": self.is_deployable,
+            "licenseStatus": self.license_status,
+        }
+
+    def display(self):
+        """Prints the details of the device."""
+        print(f"    > Hostname: {self.host_name}")
+        print(f"        ID: {self.id}")
+        print(f"        IP: {self.device_ip}")
+        print(f"        Model: {self.device_model}")
+        print(f"        Site: {self.site_name} (ID: {self.site_id})")
+        print(f"        Config Status: {self.config_status_message}")
+        # Add more details as needed
+
+
+# -----------------------------------------------------------------------------
 class Profile:
+    """
+    Represents a feature profile (SD-WAN or SD-Routing).
+    """
+
     def __init__(
         self,
         id,
@@ -505,67 +569,11 @@ class Profile:
 
 
 # -----------------------------------------------------------------------------
-class Device:
-    """
-    Represents a device associated with a configuration group.
-    """
-
-    def __init__(self, device_data: dict):
-        self.id = device_data.get("id")
-        self.site_name = device_data.get("site-name")
-        self.host_name = device_data.get("host-name")
-        self.site_id = device_data.get("site-id")
-        self.device_model = device_data.get("deviceModel")
-        self.tags = device_data.get("tags", [])
-        self.device_lock = device_data.get("device-lock")
-        self.added_by_rule = device_data.get("addedByRule")
-        self.config_status_message = device_data.get("configStatusMessage")
-        self.device_ip = device_data.get("deviceIP")
-        self.config_group_last_updated_on = device_data.get("configGroupLastUpdatedOn")
-        self.unsupported_features = device_data.get("unsupportedFeatures", [])
-        self.hierarchy_name_path = device_data.get("hierarchyNamePath")
-        self.hierarchy_type_path = device_data.get("hierarchyTypePath")
-        self.group_topology_label = device_data.get("groupTopologyLabel")
-        self.config_group_up_to_date = device_data.get("configGroupUpToDate")
-        self.is_deployable = device_data.get("isDeployable")
-        self.license_status = device_data.get("licenseStatus")
-
-    def to_dict(self):
-        """Converts the Device object to a dictionary for JSON serialization."""
-        return {
-            "id": self.id,
-            "site-name": self.site_name,
-            "host-name": self.host_name,
-            "site-id": self.site_id,
-            "deviceModel": self.device_model,
-            "tags": self.tags,
-            "device-lock": self.device_lock,
-            "addedByRule": self.added_by_rule,
-            "configStatusMessage": self.config_status_message,
-            "deviceIP": self.device_ip,
-            "configGroupLastUpdatedOn": self.config_group_last_updated_on,
-            "unsupportedFeatures": self.unsupported_features,
-            "hierarchyNamePath": self.hierarchy_name_path,
-            "hierarchyTypePath": self.hierarchy_type_path,
-            "groupTopologyLabel": self.group_topology_label,
-            "configGroupUpToDate": self.config_group_up_to_date,
-            "isDeployable": self.is_deployable,
-            "licenseStatus": self.license_status,
-        }
-
-    def display(self):
-        """Prints the details of the device."""
-        print(f"    > Hostname: {self.host_name}")
-        print(f"        ID: {self.id}")
-        print(f"        IP: {self.device_ip}")
-        print(f"        Model: {self.device_model}")
-        print(f"        Site: {self.site_name} (ID: {self.site_id})")
-        print(f"        Config Status: {self.config_status_message}")
-        # Add more details as needed
-
-
-# -----------------------------------------------------------------------------
 class ConfigGroup:
+    """
+    Represents a configuration group, its associated profiles, and devices.
+    """
+
     def __init__(
         self,
         id,
@@ -745,6 +753,10 @@ class ConfigGroup:
 
 # -----------------------------------------------------------------------------
 class ConfigGroupTable:
+    """
+    Manages a collection of configuration groups, fetching their details and associated devices.
+    """
+
     # Initialize a list to store the structured output
     config_groups_objects = []
 
@@ -789,7 +801,7 @@ class ConfigGroupTable:
                     )
                     # Keep detailed_devices_list_raw as empty if there's an error
 
-            # Create the ConfigGroup object, now passing the raw device dictionaries
+            # Create the ConfigGroup object, passing profile and device dictionaries
             config_group = ConfigGroup(
                 id=config_group_id,
                 name=group_dict.get("name"),
@@ -800,10 +812,10 @@ class ConfigGroupTable:
                 lastUpdatedOn=group_dict.get("lastUpdatedOn"),
                 createdBy=group_dict.get("createdBy"),
                 createdOn=group_dict.get("createdOn"),
-                profiles_data=group_dict.get("profiles"),  # profiles dict
+                profiles_data=group_dict.get("profiles"),  # Pass the profiles dict
                 version=group_dict.get("version"),
                 state=group_dict.get("state"),
-                devices_data=detailed_devices_list_raw,  # Pass the raw device dictionaries here
+                devices_data=detailed_devices_list_raw,  # Pass the device dictionaries
                 numberOfDevices=number_of_devices,
                 numberOfDevicesUpToDate=group_dict.get("numberOfDevicesUpToDate"),
                 origin=group_dict.get("origin"),
