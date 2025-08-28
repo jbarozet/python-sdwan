@@ -11,12 +11,11 @@ import logging
 import os
 from datetime import datetime
 
-from manager import (
-    ConfigGroupTable,
-    MyManager,
-    SDRoutingProfileTable,
-    SDWANProfileTable,
-)
+# Import the new unified Manager class and the credentials function
+from config_groups import ConfigGroupTable, SDRoutingProfileTable, SDWANProfileTable
+
+# Import the new unified Manager class and the credentials function
+from manager import Manager, get_manager_credentials_from_env
 from prompt import Prompt
 
 
@@ -87,7 +86,8 @@ if __name__ == "__main__":
     )
 
     print("\n--- Authenticating to SD-WAN Manager ---")
-    manager = MyManager()
+    host, port, user, password = get_manager_credentials_from_env()
+    manager = Manager(host, port, user, password)
 
     # Collecting Config Groups and Feature Profiles from SD-WAN Manager
     config_group_table = ConfigGroupTable(manager)
