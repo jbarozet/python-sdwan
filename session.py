@@ -1,5 +1,12 @@
 #! /usr/bin/env python
 
+# Session-based Authentication for Cisco SD-WAN Manager
+#
+# Log in with a username and password to establish a session.
+# Get a cross-site request forgery prevention token, necessary for most POST operations
+#
+# More information [here](https://developer.cisco.com/docs/sdwan/authentication/#session-based-authentication)
+
 import logging
 import os
 import sys
@@ -15,10 +22,15 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ----------------------------------------------------------
 class Authentication:
+    """
+    Handles session-based authentication for SD-WAN Manager.
+    """
+
     def __init__(self, host, port, user, password, validate_certs=False, timeout=10):
-        """Initialize Authentication object with session parameters.
+        """
+        Initialize Authentication object with session parameters.
         Args:
-            host (str): hostname or IP address of vManage
+            host (str): hostname or IP address of SD-WAN Manager
             user (str): username for authentication
             password (str): password for authentication
             port (int): default HTTPS port 443
