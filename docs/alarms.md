@@ -14,13 +14,11 @@ The closest I've been able to find is using the /event/types/keyvalue endpoint, 
 
 ## TL/DR
 
-Get alarms: `GET https://{{vmanage}}:{{port}}/dataservice/alarms`
-
-Find the component variables: `GET https://<>/dataservice/event/component/keyvalue`
-
-Find the event names (rulenames): `GET https://<>/dataservice/event/types/keyvalue`
-
-Get all possible values for alarms, and severity mapping: `GET https://{{vmanage}}:{{port}}/dataservice/alarms/severitymappings`
+- Get alarms: `GET https://{{vmanage}}:{{port}}/dataservice/alarms`
+- Get the components: `GET https://<>/dataservice/event/component/keyvalue`
+- Get the event names (rulenames): `GET https://<>/dataservice/event/types/keyvalue`
+- Get the rulenames: `https://{{vmanage}}:{{port}}/dataservice/alarms/rulenamedisplay/keyvalue`
+- Get severity mapping: `GET https://{{vmanage}}:{{port}}/dataservice/alarms/severitymappings`
 
 ## Get Alarms
 
