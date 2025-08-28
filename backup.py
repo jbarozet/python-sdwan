@@ -88,12 +88,13 @@ if __name__ == "__main__":
 
     print("\n--- Authenticating to SD-WAN Manager ---")
     manager = MyManager()
-    # dir = "data/outputs/"
 
+    # Collecting Config Groups and Feature Profiles from SD-WAN Manager
     config_group_table = ConfigGroupTable(manager)
     sdwan_profiles_table = SDWANProfileTable(manager)
     sdrouting_profiles_table = SDRoutingProfileTable(manager)
 
+    # Menu
     options = {
         "List Configuration Groups": list_groups,
         "List SD-WAN Feature Profiles": list_sdwan_profiles,

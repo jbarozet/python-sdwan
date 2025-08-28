@@ -28,7 +28,7 @@
 import json
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Optional  # Added for type hinting
 
 import requests
 
@@ -73,7 +73,7 @@ class MyManager:
 
         self.status = True
 
-    def _api_get(self, path: str, params: Optional[dict] = None):
+    def _api_get(self, path: str, params: Optional[dict] = None):  # Updated type hint
         """
         Helper method to make a GET request to the SD-WAN Manager API.
         Handles URL construction, uses the authenticated session, and checks for HTTP errors.
@@ -494,7 +494,7 @@ class Profile:
 
     def display(self):
         """Prints the details of the profile."""
-        print(f"> Profile Name ❯ {self.name}")
+        print(f"    > Profile Name ❯ {self.name}")
         print(f"      ID: {self.id}")
         print(f"      Type: {self.type}")
         print(f"      Solution: {self.solution}")
@@ -502,6 +502,66 @@ class Profile:
         print(f"      Created On: {self.createdOn}")
         print(f"      Parcel Count: {self.profileParcelCount}")
         # print("-" * 40)  # Separator for readability
+
+
+# -----------------------------------------------------------------------------
+class Device:
+    """
+    Represents a device associated with a configuration group.
+    """
+
+    def __init__(self, device_data: dict):
+        self.id = device_data.get("id")
+        self.site_name = device_data.get("site-name")
+        self.host_name = device_data.get("host-name")
+        self.site_id = device_data.get("site-id")
+        self.device_model = device_data.get("deviceModel")
+        self.tags = device_data.get("tags", [])
+        self.device_lock = device_data.get("device-lock")
+        self.added_by_rule = device_data.get("addedByRule")
+        self.config_status_message = device_data.get("configStatusMessage")
+        self.device_ip = device_data.get("deviceIP")
+        self.config_group_last_updated_on = device_data.get("configGroupLastUpdatedOn")
+        self.unsupported_features = device_data.get("unsupportedFeatures", [])
+        self.hierarchy_name_path = device_data.get("hierarchyNamePath")
+        self.hierarchy_type_path = device_data.get("hierarchyTypePath")
+        self.group_topology_label = device_data.get("groupTopologyLabel")
+        self.config_group_up_to_date = device_data.get("configGroupUpToDate")
+        self.is_deployable = device_data.get("isDeployable")
+        self.license_status = device_data.get("licenseStatus")
+
+    def to_dict(self):
+        """Converts the Device object to a dictionary for JSON serialization."""
+        return {
+            "id": self.id,
+            "site-name": self.site_name,
+            "host-name": self.host_name,
+            "site-id": self.site_id,
+            "deviceModel": self.device_model,
+            "tags": self.tags,
+            "device-lock": self.device_lock,
+            "addedByRule": self.added_by_rule,
+            "configStatusMessage": self.config_status_message,
+            "deviceIP": self.device_ip,
+            "configGroupLastUpdatedOn": self.config_group_last_updated_on,
+            "unsupportedFeatures": self.unsupported_features,
+            "hierarchyNamePath": self.hierarchy_name_path,
+            "hierarchyTypePath": self.hierarchy_type_path,
+            "groupTopologyLabel": self.group_topology_label,
+            "configGroupUpToDate": self.config_group_up_to_date,
+            "isDeployable": self.is_deployable,
+            "licenseStatus": self.license_status,
+        }
+
+    def display(self):
+        """Prints the details of the device."""
+        print(f"    > Hostname: {self.host_name}")
+        print(f"        ID: {self.id}")
+        print(f"        IP: {self.device_ip}")
+        print(f"        Model: {self.device_model}")
+        print(f"        Site: {self.site_name} (ID: {self.site_id})")
+        print(f"        Config Status: {self.config_status_message}")
+        # Add more details as needed
 
 
 # -----------------------------------------------------------------------------
@@ -520,7 +580,7 @@ class ConfigGroup:
         profiles_data,
         version,
         state,
-        devices,
+        devices_data,  # This will now be the raw list of device dictionaries
         numberOfDevices,
         numberOfDevicesUpToDate,
         origin,
@@ -560,9 +620,13 @@ class ConfigGroup:
                     )
                 )
 
+        self.devices = []  # Initialize devices as a list of Device objects
+        if devices_data and isinstance(devices_data, list):
+            for device_dict in devices_data:
+                self.devices.append(Device(device_dict))  # Create Device objects
+
         self.version = version
         self.state = state
-        self.devices = devices
         self.numberOfDevices = numberOfDevices
         self.numberOfDevicesUpToDate = numberOfDevicesUpToDate
         self.origin = origin
@@ -602,7 +666,9 @@ class ConfigGroup:
             ],  # Recursively call to_dict for profiles
             "version": self.version,
             "state": self.state,
-            "devices": self.devices,
+            "devices": [
+                device.to_dict() for device in self.devices
+            ],  # Recursively call to_dict for devices
             "numberOfDevices": self.numberOfDevices,
             "numberOfDevicesUpToDate": self.numberOfDevicesUpToDate,
             "origin": self.origin,
@@ -649,22 +715,32 @@ class ConfigGroup:
             print(f"Error saving ConfigGroup '{self.name}' to '{filepath}': {e}")
 
     def __repr__(self):
-        return f"ConfigGroup(name='{self.name}', id='{self.id}', profiles_count={len(self.profiles)})"
+        return f"ConfigGroup(name='{self.name}', id='{self.id}', profiles_count={len(self.profiles)}, devices_count={len(self.devices)})"
 
     def display(self):
-        """Prints the details of the config group and its profiles."""
-        print(f"\n= Config Group: {self.name} (ID: {self.id})")
+        """Prints the details of the config group and its profiles, and associated devices."""
+        print(f"\n* Config Group: {self.name} (ID: {self.id})")
         print(f"  Description: {self.description}")
         print(f"  Solution: {self.solution}")
         print(f"  Last Updated On: {self.lastUpdatedOn}")
         print(f"  Number of Devices: {self.numberOfDevices}")
         print(f"  Number of Devices Up-to-Date: {self.numberOfDevicesUpToDate}")
+
+        # Display Profiles
         print(f"  Profiles ({len(self.profiles)}):")
         if self.profiles:
             for profile in self.profiles:
                 profile.display()
         else:
             print("    No profiles associated with this configuration group.")
+
+        # Display Associated Devices (Now using Device objects)
+        print(f"  Associated Devices ({len(self.devices)}):")
+        if self.devices:
+            for device in self.devices:
+                device.display()  # Call the display method of the Device object
+        else:
+            print("    No devices associated with this configuration group.")
 
 
 # -----------------------------------------------------------------------------
@@ -679,21 +755,43 @@ class ConfigGroupTable:
 
         self.manager = manager
 
-        # API endpoint
+        # API endpoint for config group summary
         api_path = "/v1/config-group/"
         try:
-            data = self.manager._api_get(api_path)  # Use the new helper method
-            save_json(data, "1_config_group_table")  # save payload response
+            # Fetch summary data first
+            summary_data = self.manager._api_get(api_path)
+            save_json(summary_data, "1_config_group_table")  # save payload response
         except requests.exceptions.RequestException as e:
             print(f"Error fetching config group summary: {e}")
             return  # Exit if data cannot be fetched
 
         print("\n--- Collecting Config Groups ---")
         # Iterate through the raw data and create ConfigGroup objects
-        for group_dict in data:
-            # Pass all dictionary items directly to the ConfigGroup constructor
+        for group_dict in summary_data:  # Iterate through the summary data
+            config_group_id = group_dict.get("id")
+            number_of_devices = group_dict.get("numberOfDevices", 0)
+            detailed_devices_list_raw = []  # Will store raw device dictionaries
+
+            # If there are devices associated, fetch their details from the specific API
+            if number_of_devices > 0 and config_group_id:
+                # Corrected API endpoint for associated devices
+                device_api_path = f"/v1/config-group/{config_group_id}/device/associate"
+                print(
+                    f"  Fetching {number_of_devices} devices for Config Group '{group_dict.get('name')}' (ID: {config_group_id})"
+                )
+                try:
+                    # The API returns a dictionary with a 'devices' key
+                    response_data = self.manager._api_get(device_api_path)
+                    detailed_devices_list_raw = response_data.get("devices", [])
+                except requests.exceptions.RequestException as e:
+                    print(
+                        f"  Error fetching devices for Config Group '{group_dict.get('name')}' (ID: {config_group_id}): {e}"
+                    )
+                    # Keep detailed_devices_list_raw as empty if there's an error
+
+            # Create the ConfigGroup object, now passing the raw device dictionaries
             config_group = ConfigGroup(
-                id=group_dict.get("id"),
+                id=config_group_id,
                 name=group_dict.get("name"),
                 description=group_dict.get("description"),
                 source=group_dict.get("source"),
@@ -705,8 +803,8 @@ class ConfigGroupTable:
                 profiles_data=group_dict.get("profiles"),  # profiles dict
                 version=group_dict.get("version"),
                 state=group_dict.get("state"),
-                devices=group_dict.get("devices"),
-                numberOfDevices=group_dict.get("numberOfDevices"),
+                devices_data=detailed_devices_list_raw,  # Pass the raw device dictionaries here
+                numberOfDevices=number_of_devices,
                 numberOfDevicesUpToDate=group_dict.get("numberOfDevicesUpToDate"),
                 origin=group_dict.get("origin"),
                 copyInfo=group_dict.get("copyInfo"),
@@ -729,9 +827,9 @@ class ConfigGroupTable:
             cg_obj.save_to_file()  # Save each config group to its own JSON file
 
     def access_data(self):
-        print("\n--- Example: Accessing data from the first ConfigGroup object ---")
+        print("\n--- Example: Accessing data from the second ConfigGroup object ---")
         if self.config_groups_objects:
-            first_config_group = self.config_groups_objects[0]
+            first_config_group = self.config_groups_objects[1]
             print(f"First Config Group Name: {first_config_group.name}")
             print(f"First Config Group ID: {first_config_group.id}")
             if first_config_group.profiles:
@@ -740,6 +838,15 @@ class ConfigGroupTable:
                     print(
                         f"  - Profile Name: {profile.name}, Type: {profile.type}, ID: {profile.id}"
                     )
-                    # You can also access other attributes directly, e.g., profile.lastUpdatedOn
             else:
                 print("No profiles found for the first config group.")
+
+            # Example of accessing associated devices (Now using Device objects)
+            if first_config_group.devices:
+                print(f"Associated Devices for '{first_config_group.name}':")
+                for device in first_config_group.devices:
+                    print(
+                        f"  - Device Hostname: {device.host_name}, IP: {device.device_ip}, Model: {device.device_model}"
+                    )
+            else:
+                print("No devices associated with the first config group.")
