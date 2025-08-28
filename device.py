@@ -6,10 +6,9 @@ import os
 import click
 import requests
 import tabulate
-import urllib3
 
-# Import the new function from session.py
-from session import get_authenticated_session_details
+# Import the new unified Manager class and the credentials function
+from manager import Manager, get_manager_credentials_from_env
 
 
 # -----------------------------------------------------------------------------
@@ -48,20 +47,16 @@ def save_json(payload: str, filename: str = "payload"):
 @click.command()
 def ls():
     """
-    Get Device by IP
-    /system/device/{type}?deviceIP={ip_address}
+    Get Device list
     """
     type = "vedges"
 
-    api_url = "/system/device/%s" % (type)
-    url = base_url + api_url
+    api_path = "/system/device/%s" % (type)
 
-    response = requests.get(url=url, headers=header, verify=False)
-
-    if response.status_code == 200:
-        payload = response.json()
-        data = payload["data"]
-        # Save the payload and data to files
+    # Fetch API endpoint
+    try:
+        payload = manager._api_get(api_path)
+        data = payload.get("data", [])
         save_json(payload, "devices_all")
         save_json(data, "devices_data")
         app_headers = [
@@ -72,24 +67,43 @@ def ls():
             "System IP",
             "Configured Site ID",
         ]
-    else:
-        click.echo("Failed to get device list " + str(response.text))
-        exit()
 
-    table = list()
+        table = list()
 
-    for item in data:
-        tr = [
-            item.get("uuid", "N/A"),
-            item.get("deviceModel", "N/A"),
-            item.get("vedgeCertificateState", "N/A"),
-            item.get("host-name", "N/A"),
-            item.get("configuredSystemIP", "N/A"),  # Using .get() with default value
-            item.get("siteId", "N/A"),
-        ]
-        table.append(tr)
+        for item in data:
+            tr = [
+                item.get("uuid", "N/A"),
+                item.get("deviceModel", "N/A"),
+                item.get("vedgeCertificateState", "N/A"),
+                item.get("host-name", "N/A"),
+                item.get(
+                    "configuredSystemIP", "N/A"
+                ),  # Using .get() with default value
+                item.get("siteId", "N/A"),
+            ]
+            table.append(tr)
 
-    click.echo(tabulate.tabulate(table, app_headers, tablefmt="fancy_grid"))
+        click.echo(tabulate.tabulate(table, app_headers, tablefmt="fancy_grid"))
+
+    except requests.exceptions.HTTPError as e:
+        print(f"Error fetching users: HTTP Error {e.response.status_code}")
+        print(f"Response: {e.response.text}")
+        return
+    except requests.exceptions.ConnectionError:
+        print("Error fetching users: Connection failed.")
+        print(
+            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
+        )
+        return
+    except requests.exceptions.Timeout:
+        print(f"Error fetching users: The request timed out.")
+        print("The SD-WAN Manager might be slow to respond or unreachable.")
+        return
+    except requests.exceptions.RequestException as e:
+        print(f"An unexpected error occurred while fetching users: {e}")
+        if hasattr(e, "response") and e.response is not None:
+            print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+        return
 
 
 # -----------------------------------------------------------------------------
@@ -102,42 +116,57 @@ def get_device_by_ip():
 
     type = "vedges"
     systemip = click.prompt("Enter device system-ip", type=str)
-    api_url = f"/system/device/{type}?deviceIP={systemip}"
-    url = base_url + api_url
+    api_path = f"/system/device/{type}?deviceIP={systemip}"
 
-    response = requests.get(url=url, headers=header, verify=False)
-    if response.status_code == 200:
-        payload = response.json()
-        data = payload["data"]
-        # Save the payload and data to files
+    # Fetch API endpoint
+    try:
+        payload = manager._api_get(api_path)
+        data = payload.get("data", [])
         save_json(payload, "device_by_ip_all")
         save_json(data, "device_by_ip_data")
-    else:
-        click.echo("Failed to get device " + str(response.text))
-        exit()
 
-    for item in data:
-        tr = [
-            item["configStatusMessage"],
-            item["uuid"],
-            item["deviceModel"],
-            item["vedgeCertificateState"],
-            item["deviceIP"],
-            item["host-name"],
-            item["version"],
-            item["vmanageConnectionState"],
-        ]
+        for item in data:
+            tr = [
+                item["configStatusMessage"],
+                item["uuid"],
+                item["deviceModel"],
+                item["vedgeCertificateState"],
+                item["deviceIP"],
+                item["host-name"],
+                item["version"],
+                item["vmanageConnectionState"],
+            ]
 
-    print("\nDevice Information:")
-    print("------------------")
-    print("Device name: ", tr[5])
-    print("Device IP: ", tr[4])
-    print("UUID: ", tr[1])
-    print("Device Model: ", tr[2])
-    print("vManage Connection State: ", tr[7])
-    print("Certificate state: ", tr[3])
-    print("Version: ", tr[6])
-    print("Config status: ", tr[0])
+        print("\nDevice Information:")
+        print("------------------")
+        print("Device name: ", tr[5])
+        print("Device IP: ", tr[4])
+        print("UUID: ", tr[1])
+        print("Device Model: ", tr[2])
+        print("vManage Connection State: ", tr[7])
+        print("Certificate state: ", tr[3])
+        print("Version: ", tr[6])
+        print("Config status: ", tr[0])
+
+    except requests.exceptions.HTTPError as e:
+        print(f"Error fetching users: HTTP Error {e.response.status_code}")
+        print(f"Response: {e.response.text}")
+        return
+    except requests.exceptions.ConnectionError:
+        print("Error fetching users: Connection failed.")
+        print(
+            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
+        )
+        return
+    except requests.exceptions.Timeout:
+        print(f"Error fetching users: The request timed out.")
+        print("The SD-WAN Manager might be slow to respond or unreachable.")
+        return
+    except requests.exceptions.RequestException as e:
+        print(f"An unexpected error occurred while fetching users: {e}")
+        if hasattr(e, "response") and e.response is not None:
+            print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+        return
 
 
 # -----------------------------------------------------------------------------
@@ -149,26 +178,44 @@ def get_config():
     """
 
     uuid = click.prompt("Enter device uuid", type=str)
-    api_url = f"/template/config/running/{uuid}"
-    url = base_url + api_url
+    api_path = f"/template/config/running/{uuid}"
 
-    response = requests.get(url=url, headers=header, verify=False)
-    if response.status_code == 200:
-        payload = response.json()
-        # Save the payload and data to files
+    # Fetch API endpoint
+    try:
+        payload = manager._api_get(api_path)
+        data = payload.get("data", [])
         save_json(payload, "device_config_all")
         running_config = payload["config"]
-    else:
-        click.echo("Failed to get device configuration " + str(response.text))
-        exit()
-    print(running_config)
+        print(running_config)
+
+    except requests.exceptions.HTTPError as e:
+        print(f"Error fetching users: HTTP Error {e.response.status_code}")
+        print(f"Response: {e.response.text}")
+        return
+    except requests.exceptions.ConnectionError:
+        print("Error fetching users: Connection failed.")
+        print(
+            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
+        )
+        return
+    except requests.exceptions.Timeout:
+        print(f"Error fetching users: The request timed out.")
+        print("The SD-WAN Manager might be slow to respond or unreachable.")
+        return
+    except requests.exceptions.RequestException as e:
+        print(f"An unexpected error occurred while fetching users: {e}")
+        if hasattr(e, "response") and e.response is not None:
+            print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+        return
 
 
 # -----------------------------------------------------------------------------
-# Global variables for base_url and header, obtained from session.py
-# This will be executed once when the script starts
+# Create session with Cisco Catalyst SD-WAN Manager
 # -----------------------------------------------------------------------------
-base_url, header = get_authenticated_session_details()
+print("\n--- Authenticating to SD-WAN Manager ---")
+host, port, user, password = get_manager_credentials_from_env()
+manager = Manager(host, port, user, password)
+
 
 # ----------------------------------------------------------------------------------------------------
 # Run commands
