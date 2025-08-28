@@ -197,54 +197,17 @@ Example of response (20.18):
 
 ## Types (event names, rulenames)
 
-“rulename” possible values, I believe we can get the list using:
+**Event type** possible values, get the list using:
 
-https://{{vmanage}}:{{port}}/dataservice/event/types/keyvalue
+`https://{{vmanage}}:{{port}}/dataservice/event/types/keyvalue`
 
-double check <https://sdwan-git.cisco.com/sdwan/nms/blob/next/server/src/main/java/com/viptela/vmanage/server/event/event_config_category.json>
-This is the event definition that API returns.
+See [Example](./alarms/event-types.json)
 
-```json
-{
-  "header": {
-    "generatedOn": 1756285032643
-  },
-  "data": [
-    {
-      "key": "system-software-install-change",
-      "value": "system-software-install-change"
-    },
-    {
-      "key": "system-software-install-status",
-      "value": "system-software-install-status"
-    },
-    {
-      "key": "system-firmware-install-status",
-      "value": "system-firmware-install-status"
-    },
-    {
-      "key": "im-event",
-      "value": "im-event"
-    },
-    {
-      "key": "utd-notification",
-      "value": "utd-notification"
-    },
-    {
-      "key": "utd-update",
-      "value": "utd-update"
-    },
-    {
-      "key": "utd-ips-alert",
-      "value": "utd-ips-alert"
-    },
+**rulename** possible values, get the list using:
 
-    [cut for brevity]
+`https://{{vmanage}}:{{port}}/dataservice/alarms/rulenamedisplay/keyvalue`
 
-  ]
-}
-
-```
+See [Example](./alarms/alarms-rulenamedisplay.json)
 
 ## Severity Mappings
 
@@ -252,54 +215,5 @@ Get all possible values for alarms, and the corresponding severity mapping:
 
 `GET https://{{vmanage}}:{{port}}/dataservice/alarms/severitymappings`
 
-Example of response (20.18) - Extract:
+Check [Example of response (20.18)](./alarms/severity-mapping.json)
 
-```json
-{
-  "header": {
-    "generatedOn": 1756285196961
-  },
-  "data": [
-    {
-      "key": "Major",
-      "value": "Major",
-      "associatedAlarms": [
-        {
-          "key": "WANI_Recommendation",
-          "value": "WANI Recommendation"
-        },
-        {
-          "key": "ISE",
-          "value": "ISE"
-        },
-        {
-          "key": "SD-AVC Cloud Connector Credentials Error",
-          "value": "SD-AVC Cloud Connector Credentials Error"
-        },
-        {
-          "key": "Create PxGrid Account failed",
-          "value": "Create PxGrid Account failed"
-        },
-        {
-          "key": "Tracker_State_Change",
-          "value": "Tracker State Change"
-        },
-        {
-          "key": "Multicloud",
-          "value": "Multicloud"
-        },
-
-        [cut for brevity]
-
-        {
-          "key": "Disk_Usage",
-          "value": "Disk Usage"
-        },
-        {
-          "key": "Memory_Usage",
-          "value": "Memory Usage"
-        },
-
-        [cut for brevity]
-
-```
