@@ -1,5 +1,5 @@
 # =========================================================================
-# Catalyst WAN SDK
+# Catalyst WAN Python scripts examples
 #
 # SD-WAN/SD-Routing UX 2.0 Device Config
 # Using Config Group and Feature Profiles
@@ -28,6 +28,7 @@
 import json
 import os
 from datetime import datetime
+from typing import Optional
 
 import requests
 
@@ -63,23 +64,37 @@ class MyManager:
         self.status = False
         self.profile_id_table = []
         self.config_group_table = []
-        self.base_url, self.header = get_authenticated_session_details()
+
+        # Get the authenticated session object and base URL
+        self.session, self.base_url = get_authenticated_session_details()
 
         print(f"Base URL: {self.base_url}")
-        print(f"Header: {self.header}")
-        # self.version = self.session.about().version
-        # self.api_version = self.session.api_version
-        # self.application_version = self.session.about().application_version
-
-        # print("\n~~~ Session Information\n")
-        # print(f"vManage: {self.session.url}")
-        # print(f"Version: {self.session.about().version}")
-        # print(f"API Version: {self.session.api_version}")
-        # print(f"Application Version: {self.session.about().application_version}\n")
+        print(f"Session headers: {self.session.headers}")  # Show configured headers
 
         self.status = True
 
-    # def close(self):
+    def _api_get(self, path: str, params: Optional[dict] = None):
+        """
+        Helper method to make a GET request to the SD-WAN Manager API.
+        Handles URL construction, uses the authenticated session, and checks for HTTP errors.
+
+        Args:
+            path (str): The API endpoint path (e.g., "/v1/config-group/").
+            params (dict, optional): Dictionary of query parameters. Defaults to None.
+
+        Returns:
+            dict: The JSON response from the API.
+
+        Raises:
+            requests.exceptions.RequestException: If the API call fails.
+        """
+        url = self.base_url + path
+        # print(f"Making GET request to: {url}") # Uncomment for verbose debugging
+        response = self.session.get(url=url, params=params)
+        response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
+        return response.json()
+
+    # def close(self): # No longer strictly necessary as session handles its own closing on program exit
     #     self.session.close()
 
 
@@ -114,23 +129,25 @@ class SDRoutingFeatureProfile:
                 urlp = url_base + "service/"
             case "cli":
                 urlp = url_base + "cli/"
-            # case "policy-object":
+            # case "policy-object": # This case was commented out in original, keeping it that way
             #     urlp = url_base + "policy-object/"
             case _:
-                print(f"{self.type} type not supported for SD-WAN feature profile")
+                print(f"{self.type} type not supported for SD-Routing feature profile")
                 return
 
         # Get profile_id payload
         # NOTE: details option has been added in 20.12
-        url = self.manager.base_url + urlp + self.id + "?details=true"
-        headers = self.manager.header
-        print(f"Fetching details for profile ID {self.id} from {url}")
-        response = requests.get(url=url, headers=headers, verify=False)
-        response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
-        self.payload = response.json()
-        self.profile_name = self.payload["profileName"]
-        self.profile_type = self.payload["profileType"]
-        self.solution = self.payload["solution"]
+        path = urlp + self.id
+        params = {"details": "true"}
+        print(f"Fetching details for profile ID {self.id} from {path}")
+        try:
+            self.payload = self.manager._api_get(path, params=params)
+            self.profile_name = self.payload["profileName"]
+            self.profile_type = self.payload["profileType"]
+            self.solution = self.payload["solution"]
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching details for profile ID {self.id}: {e}")
+            self.payload = None  # Indicate failure to fetch
 
 
 # -----------------------------------------------------------------------------
@@ -139,14 +156,14 @@ class SDRoutingProfileTable:
         self.manager = manager
         self.profiles_table = []  # This will store generic Profile objects
 
-        api_url = "/v1/feature-profile/sd-routing/"
+        api_path_summary = "/v1/feature-profile/sd-routing/"
 
         # Get list of profiles (summary)
-        url = self.manager.base_url + api_url
-        headers = self.manager.header
-        response = requests.get(url=url, headers=headers, verify=False)
-        response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
-        summary_data = response.json()
+        try:
+            summary_data = self.manager._api_get(api_path_summary)
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching SD-Routing profile summary: {e}")
+            return  # Exit if summary data cannot be fetched
 
         # For each summary item, fetch full details and create a Profile object
         for item in summary_data:
@@ -262,7 +279,7 @@ class SDWANFeatureProfile:
                 urlp = api_url + "service/"
             case "cli":
                 urlp = api_url + "cli/"
-            # case "policy-object":
+            # case "policy-object": # This case was commented out in original, keeping it that way
             #     urlp = api_url + "policy-object/"
             case _:
                 print(f"{self.type} type not supported for SD-WAN feature profile")
@@ -270,14 +287,16 @@ class SDWANFeatureProfile:
 
         # Get profile_id payload
         # NOTE: details option has been added in 20.12
-        url = self.manager.base_url + urlp + self.id + "?details=true"
-        headers = self.manager.header
-        response = requests.get(url=url, headers=headers, verify=False)
-        response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
-        self.payload = response.json()
-        self.profile_name = self.payload.get("profileName")
-        self.profile_type = self.payload.get("profileType")
-        self.solution = self.payload.get("solution")
+        path = urlp + self.id
+        params = {"details": "true"}
+        try:
+            self.payload = self.manager._api_get(path, params=params)
+            self.profile_name = self.payload.get("profileName")
+            self.profile_type = self.payload.get("profileType")
+            self.solution = self.payload.get("solution")
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching details for profile {self.name} ({self.id}): {e}")
+            self.payload = None  # Indicate failure to fetch
 
 
 # -----------------------------------------------------------------------------
@@ -286,17 +305,17 @@ class SDWANProfileTable:
         self.manager = manager
         self.profiles_table = []  # This will now store generic Profile objects
 
-        api_url = "/v1/feature-profile/sdwan/"
+        api_path_summary = "/v1/feature-profile/sdwan/"
 
         print("\n--- Collecting Feature Profiles ---")
 
         # Get list of profiles (summary)
-        url = self.manager.base_url + api_url
-        headers = self.manager.header
-        response = requests.get(url=url, headers=headers, verify=False)
-        response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
-        summary_data = response.json()
-        save_json(summary_data, "2_profile_table")  # save payload response
+        try:
+            summary_data = self.manager._api_get(api_path_summary)
+            save_json(summary_data, "2_profile_table")  # save payload response
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching SD-WAN profile summary: {e}")
+            return  # Exit if summary data cannot be fetched
 
         # For each summary item, fetch full details and create a Profile object
         for item in summary_data:
@@ -661,13 +680,13 @@ class ConfigGroupTable:
         self.manager = manager
 
         # API endpoint
-        api_url = "/v1/config-group/"
-        url = self.manager.base_url + api_url
-        headers = self.manager.header
-        response = requests.get(url=url, headers=headers, verify=False)
-        response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
-        data = response.json()
-        save_json(data, "1_config_group_table")  # save payload response
+        api_path = "/v1/config-group/"
+        try:
+            data = self.manager._api_get(api_path)  # Use the new helper method
+            save_json(data, "1_config_group_table")  # save payload response
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching config group summary: {e}")
+            return  # Exit if data cannot be fetched
 
         print("\n--- Collecting Config Groups ---")
         # Iterate through the raw data and create ConfigGroup objects

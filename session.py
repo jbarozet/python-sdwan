@@ -44,16 +44,17 @@ class Authentication:
         self.password = password
         self.timeout = timeout
         self.base_url = f"https://{self.host}:{self.port}"
-        self.session = requests.Session()
+        self.session = requests.Session()  # Initialize the session here
         self.session.verify = validate_certs  # Set session-wide verification
         self.jsessionid = None
         self.token = None
-        self.header = None
+        # self.header = None # No longer needed as headers will be set on the session
         self.dataservice_base_url = None
 
     def login(self):
         """
         Performs the initial login to get the JSESSIONID.
+        The requests.Session object will automatically manage the cookies.
         """
 
         api = "/j_security_check"
@@ -65,12 +66,15 @@ class Authentication:
             response = self.session.post(url=url, data=payload, timeout=self.timeout)
             response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
 
+            # The JSESSIONID cookie is now managed by self.session automatically.
+            # We still extract it here to use for the X-XSRF-TOKEN request if needed,
+            # though requests.Session would usually handle it for subsequent requests.
             cookies = response.headers.get("Set-Cookie")
             if not cookies:
                 raise ValueError("No 'Set-Cookie' header found in login response.")
-
-            jsessionid_full = cookies.split(";")
-            self.jsessionid = jsessionid_full[0]
+            self.jsessionid = cookies.split(";")[
+                0
+            ]  # Store for explicit token request if needed
             return self.jsessionid
 
         except requests.exceptions.RequestException as e:
@@ -87,21 +91,20 @@ class Authentication:
         """
         Retrieves the X-XSRF-TOKEN.
         """
-
         if not self.jsessionid:
             logger.warning("JSESSIONID not set, attempting login before getting token.")
             self.login()  # Ensure jsessionid is present
 
-        headers = {
-            "Cookie": self.jsessionid
-        }  # This cookie is also managed by self.session
+        # The session should already have the JSESSIONID cookie.
+        # No need to explicitly pass 'Cookie' header if using the session.
         api = "/dataservice/client/token"
         url = self.base_url + api
 
         response = None
-
         try:
-            response = self.session.get(url=url, headers=headers, timeout=self.timeout)
+            response = self.session.get(
+                url=url, timeout=self.timeout
+            )  # Use self.session directly
             response.raise_for_status()  # Raise an exception for HTTP errors
             self.token = response.text
             return self.token
@@ -114,30 +117,28 @@ class Authentication:
 
     def establish_session(self):
         """
-        Performs login and token retrieval, then constructs header and base_url.
+        Performs login and token retrieval, then configures the session with default headers.
+        Returns the configured requests.Session object and the dataservice base URL.
         """
-
         self.jsessionid = self.login()
         self.token = self.get_token()
 
+        # Set default headers for all subsequent requests made with this session
+        self.session.headers.update(
+            {
+                "Content-Type": "application/json",
+            }
+        )
         if self.token:
-            self.header = {
-                "Content-Type": "application/json",
-                "Cookie": self.jsessionid,
-                "X-XSRF-TOKEN": self.token,
-            }
+            self.session.headers.update({"X-XSRF-TOKEN": self.token})
         else:
-            # Fallback if token is not obtained, though it might indicate an issue
-            self.header = {
-                "Content-Type": "application/json",
-                "Cookie": self.jsessionid,
-            }
             logger.warning(
                 "X-XSRF-TOKEN was not obtained. API calls might fail if it's required."
             )
 
         self.dataservice_base_url = f"https://{self.host}:{self.port}/dataservice"
-        return self.dataservice_base_url, self.header
+        # Return the configured session object and the base URL
+        return self.session, self.dataservice_base_url
 
 
 # ----------------------------------------------------------
@@ -176,9 +177,10 @@ def get_manager_credentials_from_env():
 def get_authenticated_session_details():
     """
     Orchestrates the retrieval of credentials, authentication,
-    and returns the base URL and header for API calls.
+    and returns the authenticated requests.Session object and the base URL for API calls.
     """
     host, port, user, password = get_manager_credentials_from_env()
     auth_manager = Authentication(host, port, user, password)
-    base_url, header = auth_manager.establish_session()
-    return base_url, header
+    # Now establish_session returns the session object and base_url
+    session_obj, base_url = auth_manager.establish_session()
+    return session_obj, base_url  # Return the session object and base_url
