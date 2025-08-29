@@ -63,6 +63,8 @@ export manager_password=mysuperpassword
 % source init.sh
 ```
 
+All tests will save API response payloads in `output/payloads` folder to easily check the json content.
+
 ## Documentation
 
 Refer to:
