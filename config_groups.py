@@ -427,8 +427,43 @@ class Device:
         print(f"        IP: {self.device_ip}")
         print(f"        Model: {self.device_model}")
         print(f"        Site: {self.site_name} (ID: {self.site_id})")
+        print(f"        hierarchy name: {self.hierarchy_name_path}")
+        print(f"        hierarchy type: {self.hierarchy_type_path}")
         print(f"        Config Status: {self.config_status_message}")
         # Add more details as needed
+
+    def save_to_file(self, directory="output/config_groups/associated"):
+        """
+        Saves the Device object's data to a JSON file.
+
+        Args:
+            directory (str): The directory where the file will be saved.
+            Defaults to 'output/config_groups/associated'.
+        """
+        if not os.path.exists(directory):
+            os.makedirs(
+                directory, exist_ok=True
+            )  # Use exist_ok=True to prevent error if dir already exists
+
+        # Sanitize the hostname to create a valid filename
+        sanitized_name = "".join(
+            c for c in self.host_name if c.isalnum() or c in (" ", ".", "_", "-")
+        ).strip()
+        sanitized_name = sanitized_name.replace(" ", "_")
+
+        if not sanitized_name:
+            filename = f"device_{self.id}.json"
+        else:
+            filename = f"{sanitized_name}.json"
+
+        filepath = os.path.join(directory, filename)
+
+        try:
+            with open(filepath, "w") as f:
+                json.dump(self.to_dict(), f, indent=4)
+            print(f"Successfully saved Device '{self.host_name}' to '{filepath}'")
+        except Exception as e:
+            print(f"Error saving Device '{self.host_name}' to '{filepath}': {e}")
 
 
 # -----------------------------------------------------------------------------
@@ -553,42 +588,6 @@ class Profile:
         except Exception as e:
             print(f"Error saving Profile '{self.name}' to '{filepath}': {e}")
 
-    def save_to_file2(self, directory="output/feature_profiles"):
-        """
-        Saves the Profile object's data to a JSON file.
-
-        Args:
-            directory (str): The directory where the file will be saved.
-            Defaults to 'output/feature_profiles'.
-        """
-        if not os.path.exists(directory):
-            os.makedirs(directory)  # Create the directory if it doesn't exist
-
-        # Sanitize the name to create a valid filename
-        # Replace non-alphanumeric characters (except spaces, dots, underscores) with nothing
-        # Then replace spaces with underscores for better filename compatibility
-        sanitized_name = "".join(
-            c for c in self.name if c.isalnum() or c in (" ", ".", "_", "-")
-        ).strip()
-        sanitized_name = sanitized_name.replace(" ", "_")
-
-        # Fallback if name becomes empty or invalid after sanitization
-        if not sanitized_name:
-            filename = f"profile_{self.id}.json"
-        else:
-            filename = f"{sanitized_name}.json"
-
-        filepath = os.path.join(directory, filename)
-
-        try:
-            with open(filepath, "w") as f:
-                json.dump(
-                    self.to_dict(), f, indent=4
-                )  # Use indent=4 for pretty-printing JSON
-            print(f"Successfully saved Profile '{self.name}' to '{filepath}'")
-        except Exception as e:
-            print(f"Error saving Profile '{self.name}' to '{filepath}': {e}")
-
     def __repr__(self):
         return f"Profile(name='{self.name}', id='{self.id}', type='{self.type}')"
 
@@ -646,6 +645,7 @@ class ConfigGroup:
         self.createdOn = self._convert_timestamp_to_datetime(createdOn)
         self.profiles = []  # Initialize profiles as a list of Profile objects
 
+        # Get profiles list
         if profiles_data and isinstance(profiles_data, list):
             for profile_dict in profiles_data:
                 self.profiles.append(
@@ -664,6 +664,7 @@ class ConfigGroup:
                     )
                 )
 
+        # Get devices list
         self.devices = []  # Initialize devices as a list of Device objects
         if devices_data and isinstance(devices_data, list):
             for device_dict in devices_data:
@@ -724,32 +725,33 @@ class ConfigGroup:
             "versionIncrementReason": self.versionIncrementReason,
         }
 
-    def save_to_file(self, directory="output/config_groups/groups"):
+    def save_to_file(self, base_output_directory="output/config_groups"):
         """
-        Saves the ConfigGroup object's data to a JSON file.
+        Saves the ConfigGroup object's data to a JSON file in a 'groups' subfolder,
+        and also saves associated devices to an 'associated' subfolder within
+        a config group specific directory.
 
         Args:
-            directory (str): The directory where the file will be saved.
-            Defaults to 'output_config_groups'.
+            base_output_directory (str): The root directory for saving config group related data.
+            Defaults to 'output/config_groups'.
         """
-        if not os.path.exists(directory):
-            os.makedirs(directory)  # Create the directory if it doesn't exist
+        # Directory for the config group JSON itself (e.g., output/config_groups/groups)
+        group_json_directory = os.path.join(base_output_directory, "groups")
+        if not os.path.exists(group_json_directory):
+            os.makedirs(group_json_directory, exist_ok=True)
 
         # Sanitize the name to create a valid filename
-        # Replace non-alphanumeric characters (except spaces, dots, underscores) with nothing
-        # Then replace spaces with underscores for better filename compatibility
         sanitized_name = "".join(
             c for c in self.name if c.isalnum() or c in (" ", ".", "_", "-")
         ).strip()
         sanitized_name = sanitized_name.replace(" ", "_")
 
-        # Fallback if name becomes empty or invalid after sanitization
         if not sanitized_name:
             filename = f"config_group_{self.id}.json"
         else:
             filename = f"{sanitized_name}.json"
 
-        filepath = os.path.join(directory, filename)
+        filepath = os.path.join(group_json_directory, filename)
 
         try:
             with open(filepath, "w") as f:
@@ -757,6 +759,22 @@ class ConfigGroup:
             print(f"Successfully saved ConfigGroup '{self.name}' to '{filepath}'")
         except Exception as e:
             print(f"Error saving ConfigGroup '{self.name}' to '{filepath}': {e}")
+
+        # Now, save associated devices to the 'associated' subdirectory
+        if self.devices:
+            # Create a specific directory for devices of this config group
+            # e.g., output/config_groups/associated/My_Config_Group_Name/
+            config_group_devices_directory = os.path.join(
+                base_output_directory, "associated", sanitized_name
+            )
+            if not os.path.exists(config_group_devices_directory):
+                os.makedirs(config_group_devices_directory, exist_ok=True)
+
+            print(
+                f"Saving associated devices for '{self.name}' to '{config_group_devices_directory}'..."
+            )
+            for device in self.devices:
+                device.save_to_file(config_group_devices_directory)
 
     def __repr__(self):
         return f"ConfigGroup(name='{self.name}', id='{self.id}', profiles_count={len(self.profiles)}, devices_count={len(self.devices)})"
@@ -793,22 +811,31 @@ class ConfigGroupTable:
     Manages a collection of configuration groups, fetching their details and associated devices.
     """
 
-    # Initialize a list to store the structured output
+    # Initialize a list to store the structured device objects
     config_groups_objects = []
 
-    def __init__(self, manager: Manager):
+    def __init__(
+        self,
+        manager: Manager,
+        sdwan_profiles_table: Optional["SDWANProfileTable"] = None,
+        sdrouting_profiles_table: Optional["SDRoutingProfileTable"] = None,
+    ):
         """
-        '/v1/config-group'
+        Initializes ConfigGroupTable and fetches config group data.
+        Optionally takes SDWANProfileTable and SDRoutingProfileTable instances to save all data together.
         """
-
         self.manager = manager
+        self.sdwan_profiles_table = sdwan_profiles_table
+        self.sdrouting_profiles_table = sdrouting_profiles_table
+        self.config_groups_objects = []
 
-        # API endpoint for config group summary
         api_path = "/v1/config-group/"
+
+        print("\n--- Collecting Config Groups ---")
+
         try:
-            # Fetch summary data first
             summary_data = self.manager._api_get(api_path)
-            save_json(summary_data, "1_config_group_table")  # save payload response
+            save_json(summary_data, "1_config_group_table")
 
         except requests.exceptions.RequestException as e:
             print(f"An unexpected error occurred: {e}")
@@ -816,22 +843,19 @@ class ConfigGroupTable:
                 print(f"Status: {e.response.status_code}, Response: {e.response.text}")
             return
 
-        print("\n--- Collecting Config Groups ---")
-        # Iterate through the raw data and create ConfigGroup objects
-        for group_dict in summary_data:  # Iterate through the summary data
+        for group_dict in summary_data:
             config_group_id = group_dict.get("id")
             number_of_devices = group_dict.get("numberOfDevices", 0)
-            detailed_devices_list_raw = []  # Will store raw device dictionaries
+            detailed_devices_list_raw = []
 
-            # If there are devices associated, fetch their details from the specific API
             if number_of_devices > 0 and config_group_id:
-                # Corrected API endpoint for associated devices
                 device_api_path = f"/v1/config-group/{config_group_id}/device/associate"
+
+                print("\n--- Collecting Associated Devices ---")
                 print(
                     f"  Fetching {number_of_devices} devices for Config Group '{group_dict.get('name')}' (ID: {config_group_id})"
                 )
                 try:
-                    # The API returns a dictionary with a 'devices' key
                     response_data = self.manager._api_get(device_api_path)
                     detailed_devices_list_raw = response_data.get("devices", [])
 
@@ -843,9 +867,7 @@ class ConfigGroupTable:
                         print(
                             f"Status: {e.response.status_code}, Response: {e.response.text}"
                         )
-                    # Keep detailed_devices_list_raw as empty if there's an error
 
-            # Create the ConfigGroup object, passing profile and device dictionaries
             config_group = ConfigGroup(
                 id=config_group_id,
                 name=group_dict.get("name"),
@@ -856,10 +878,10 @@ class ConfigGroupTable:
                 lastUpdatedOn=group_dict.get("lastUpdatedOn"),
                 createdBy=group_dict.get("createdBy"),
                 createdOn=group_dict.get("createdOn"),
-                profiles_data=group_dict.get("profiles"),  # Pass the profiles dict
+                profiles_data=group_dict.get("profiles"),
                 version=group_dict.get("version"),
                 state=group_dict.get("state"),
-                devices_data=detailed_devices_list_raw,  # Pass the device dictionaries
+                devices_data=detailed_devices_list_raw,
                 numberOfDevices=number_of_devices,
                 numberOfDevicesUpToDate=group_dict.get("numberOfDevicesUpToDate"),
                 origin=group_dict.get("origin"),
@@ -877,11 +899,23 @@ class ConfigGroupTable:
         for cg_obj in self.config_groups_objects:
             cg_obj.display()
 
-    def save_groups(self, directory="output/config_groups/groups"):
-        print("\n---  Saving ConfigGroup Objects ---")
-        # Use the save_to_file method of the generic config-group object
+    def save_groups(self, directory="output/config_groups"):
+        print("\n---  Saving ConfigGroup Objects and Associated Data ---")
+        # Save each config group and its associated devices
         for cg_obj in self.config_groups_objects:
             cg_obj.save_to_file(directory)
+
+        # Save the feature profiles if the instances were provided
+        if self.sdwan_profiles_table:
+            print("\n--- Saving SD-WAN Feature Profiles ---")
+            self.sdwan_profiles_table.save_profiles()
+        if self.sdrouting_profiles_table:
+            print("\n--- Saving SD-Routing Feature Profiles ---")
+            self.sdrouting_profiles_table.save_profiles()
+
+        print(
+            "\nAll Config Groups, Associated Devices, and Feature Profiles saved successfully!"
+        )
 
     def access_data(self):
         print("\n--- Example: Accessing data from the second ConfigGroup object ---")
@@ -898,7 +932,6 @@ class ConfigGroupTable:
             else:
                 print("No profiles found for the first config group.")
 
-            # Example of accessing associated devices (Now using Device objects)
             if first_config_group.devices:
                 print(f"Associated Devices for '{first_config_group.name}':")
                 for device in first_config_group.devices:

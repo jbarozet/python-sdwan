@@ -34,7 +34,7 @@ from config_groups import ConfigGroupTable, SDRoutingProfileTable, SDWANProfileT
 
 # Import the new unified Manager class and the credentials function
 from manager import Manager, get_manager_credentials_from_env
-from prompt import Prompt
+from prompt import Prompt  # Ensure this import is present
 
 
 # -----------------------------------------------------------------------------
@@ -50,6 +50,8 @@ def list_groups():
 
 # -----------------------------------------------------------------------------
 def save_groups():
+    # This function now simply calls the ConfigGroupTable's save_groups,
+    # which internally handles saving profiles as well.
     config_group_table.save_groups()
 
 
@@ -64,18 +66,8 @@ def list_sdwan_profiles():
 
 
 # -----------------------------------------------------------------------------
-def save_sdwan_profiles():
-    sdwan_profiles_table.save_profiles()
-
-
-# -----------------------------------------------------------------------------
 def list_sdrouting_profiles():
     sdrouting_profiles_table.list()
-
-
-# -----------------------------------------------------------------------------
-def save_sdrouting_profiles():
-    sdrouting_profiles_table.save_profiles()
 
 
 # -----------------------------------------------------------------------------
@@ -92,7 +84,7 @@ def list_sdrouting_profile_categories():
 def quit():
     print("Quitting ...")
     # manager.close()
-    raise SystemExit
+    raise SystemExit  # This will now be caught by the main loop's try-except
 
 
 # -----------------------------------------------------------------------------
@@ -108,9 +100,11 @@ if __name__ == "__main__":
     manager = Manager(host, port, user, password)
 
     # Collecting Config Groups and Feature Profiles from SD-WAN Manager
-    config_group_table = ConfigGroupTable(manager)
     sdwan_profiles_table = SDWANProfileTable(manager)
     sdrouting_profiles_table = SDRoutingProfileTable(manager)
+    config_group_table = ConfigGroupTable(
+        manager, sdwan_profiles_table, sdrouting_profiles_table
+    )
 
     # Menu
     options = {
@@ -119,13 +113,39 @@ if __name__ == "__main__":
         "List SD-Routing Feature Profiles": list_sdrouting_profiles,
         "List SD-WAN Feature Profiles per category": list_sdwan_profile_categories,
         "List SD-Routing Feature Profiles per category": list_sdrouting_profile_categories,
-        "Save Configuration Groups to files": save_groups,
-        "Save SD-WAN Feature Profiles to files": save_sdwan_profiles,
-        "Save SD-Routing Feature Profiles to files": save_sdrouting_profiles,
+        "Save Configuration Groups to files (and all Feature Profiles)": save_groups,
         "Example: Accessing data from the first ConfigGroup object": access_groups,
         "Quit": quit,
     }
 
     while True:
-        print("")
-        Prompt.dict_menu(options)
+        print("")  # Print a blank line before displaying the menu for better separation
+        selected_option_name, selected_function = Prompt.dict_menu(
+            options
+        )  # Get the chosen function and its name
+
+        # Add clear separators and the chosen option name
+        print(f"\n{'=' * 80}")
+        print(f"--- Executing: {selected_option_name} ---".center(80))
+        print(f"{'=' * 80}\n")
+
+        try:
+            selected_function()  # Execute the chosen function
+        except SystemExit:  # Catch SystemExit (e.g., from 'quit' option)
+            break  # Exit the main loop gracefully
+        except Exception as e:
+            # Print a distinct error separator if an unexpected error occurs during execution
+            print(f"\n{'!' * 80}")
+            print(
+                f"!!! An error occurred during '{selected_option_name}' execution: {e} !!!".center(
+                    80
+                )
+            )
+            print(f"{'!' * 80}\n")
+            # The loop will continue, re-displaying the menu after the error
+
+        # Print a clear separator after the function finishes
+        print(f"\n{'=' * 80}")
+        print(f"--- Finished: {selected_option_name} ---".center(80))
+        print(f"{'=' * 80}\n")
+        # The loop will continue, re-displaying the menu for the next choice
