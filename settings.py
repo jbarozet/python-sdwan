@@ -29,7 +29,9 @@ def cli():
 
 
 # -----------------------------------------------------------------------------
-def save_json(payload: str, filename: str = "payload"):
+def save_json(
+    payload: dict, filename: str = "payload", directory: str = "./output/payloads/"
+):
     """Save json response payload to a file
 
     Args:
@@ -37,18 +39,13 @@ def save_json(payload: str, filename: str = "payload"):
         filename: filename for saved files (default: "payload")
     """
 
-    data_dir = "./payloads/"
-    filename = "".join([data_dir, f"{filename}.json"])
+    filename = "".join([directory, f"{filename}.json"])
 
-    # Create payload folder
-    if not os.path.exists(data_dir):
-        os.mkdir(data_dir)
-        print("~~~ Folder %s created!" % data_dir)
-    else:
-        print("~~~ Folder %s already exists" % data_dir)
+    if not os.path.exists(directory):
+        print(f"Creating folder {directory}")
+        os.makedirs(directory)  # Create the directory if it doesn't exist
 
     # Dump entire payload to file
-    print(f"~~~ Saving payload in {filename}")
     with open(filename, "w") as file:
         json.dump(payload, file, indent=4)
 
@@ -66,8 +63,8 @@ def get_org():
     try:
         payload = manager._api_get(api_path)
         data = payload.get("data", [])
-        save_json(payload, "org_settings_all")
-        save_json(data, "org_settings_data")
+        save_json(payload, "org_header_data", "output/payloads/settings/")
+        save_json(data, "org_data", "output/payloads/settings/")
         for item in data:
             org = item["org"]
         click.echo(f"Organization: {org}")
@@ -81,7 +78,7 @@ def get_org():
 
 # -----------------------------------------------------------------------------
 @click.command()
-def get_vbond():
+def get_validator():
     """
     Get vBond IP or name
     """
@@ -90,13 +87,14 @@ def get_vbond():
 
     # Fetch API endpoint for org name
     try:
+        vbond = ""
         payload = manager._api_get(api_path)
         data = payload.get("data", [])
-        save_json(payload, "vbond_settings_all")
-        save_json(data, "vbond_settings_data")
+        save_json(payload, "validator_header_all", "output/payloads/settings/")
+        save_json(data, "validator_data", "output/payloads/settings/")
         for item in data:
             vbond = item["domainIp"]
-        click.echo(f"vBond: {vbond}")
+        click.echo(f"validator: {vbond}")
 
     except requests.exceptions.RequestException as e:
         print(f"An unexpected error occurred: {e}")
@@ -116,7 +114,7 @@ manager = Manager(host, port, user, password)
 # -----------------------------------------------------------------------------
 # Run commands
 # -----------------------------------------------------------------------------
-cli.add_command(get_vbond)
+cli.add_command(get_validator)
 cli.add_command(get_org)
 
 if __name__ == "__main__":

@@ -31,27 +31,23 @@ def cli():
 
 
 # -----------------------------------------------------------------------------
-def save_json(payload: str, filename: str = "payload"):
-    """
-    Save json response payload to a file
+def save_json(
+    payload: dict, filename: str = "payload", directory: str = "./output/payloads/"
+):
+    """Save json response payload to a file
 
     Args:
         payload: JSON response payload
         filename: filename for saved files (default: "payload")
     """
 
-    data_dir = "./payloads/"
-    filename = "".join([data_dir, f"{filename}.json"])
+    filename = "".join([directory, f"{filename}.json"])
 
-    # Create payload folder
-    if not os.path.exists(data_dir):
-        os.mkdir(data_dir)
-        print("~~~ Folder %s created!" % data_dir)
-    else:
-        print("~~~ Folder %s already exists" % data_dir)
+    if not os.path.exists(directory):
+        print(f"Creating folder {directory}")
+        os.makedirs(directory)  # Create the directory if it doesn't exist
 
     # Dump entire payload to file
-    print(f"~~~ Saving payload in {filename}")
     with open(filename, "w") as file:
         json.dump(payload, file, indent=4)
 
@@ -72,8 +68,8 @@ def app_list():
     try:
         payload = manager._api_get(api_path)
         data = payload.get("data", [])
-        save_json(payload, "applications_all")
-        save_json(data, "applications_data")
+        save_json(payload, "applications_header_data", "output/payloads/approute/")
+        save_json(data, "applications_data", "output/payloads/approute/")
         app_headers = ["App name", "Family", "ID"]
 
         table = list()
@@ -122,8 +118,8 @@ def app_list2():
     try:
         payload = manager._api_get(api_path)
         data = payload.get("data", [])
-        save_json(payload, "applications_all")
-        save_json(data, "applications_data")
+        save_json(payload, "app_header_data", "output/payloads/approute/")
+        save_json(data, "app_data", "output/payloads/approute/")
 
         table = list()
         cli = cmd.Cmd()
@@ -170,8 +166,8 @@ def app_qosmos():
     try:
         payload = manager._api_get(api_path)
         data = payload.get("data", [])
-        save_json(payload, "qosmos_applications_all")
-        save_json(data, "qosmos_applications_data")
+        save_json(payload, "app_qosmos_header_data", "output/payloads/approute/")
+        save_json(data, "app_qosmos_data", "output/payloads/approute/")
         app_headers = ["App name", "Family", "ID"]
 
         table = list()
@@ -217,7 +213,7 @@ def approute_fields():
     # Fetch API endpoint for org name
     try:
         payload = manager._api_get(api_path)
-        save_json(payload, "approute-fields")
+        save_json(payload, "approute-fields", "output/payloads/approute/")
 
         tags = list()
         cli = cmd.Cmd()
@@ -338,6 +334,12 @@ def approute_stats():
     try:
         response = manager._api_post(api_path, payload=payload_r1_r2)
         app_route_stats = response.get("data")
+        save_json(
+            response, "approute_stats_r1r2_header_data", "output/payloads/approute/"
+        )
+        save_json(
+            app_route_stats, "approute_stats_r1r2_data", "output/payloads/approute/"
+        )
         app_route_stats_headers = [
             "Tunnel name",
             "vQoE score",
@@ -369,6 +371,14 @@ def approute_stats():
         # Get app route statistics for tunnels from router-2 to router-1
         response = manager._api_post(api_path, payload=payload_r2_r1)
         app_route_stats = response.get("data")
+
+        save_json(
+            response, "approute_stats_r2r1_header_data", "output/payloads/approute/"
+        )
+        save_json(
+            app_route_stats, "approute_stats_r2r1_data", "output/payloads/approute/"
+        )
+
         app_route_stats_headers = [
             "Tunnel name",
             "vQoE score",
@@ -441,6 +451,9 @@ def approute_device():
     try:
         payload = manager._api_get(api_path)
         app_route_stats = payload.get("data")
+        save_json(payload, "approute_device_header_data", "output/payloads/approute/")
+        save_json(app_route_stats, "approute_device_data", "output/payloads/approute/")
+
         app_route_stats_headers = [
             "vdevice-host-name",
             "remote-system-ip",

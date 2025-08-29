@@ -30,7 +30,9 @@ def cli():
 
 
 # -----------------------------------------------------------------------------
-def save_json(payload: dict, filename: str = "payload"):
+def save_json(
+    payload: dict, filename: str = "payload", directory: str = "./output/payloads/"
+):
     """Save json response payload to a file
 
     Args:
@@ -38,18 +40,13 @@ def save_json(payload: dict, filename: str = "payload"):
         filename: filename for saved files (default: "payload")
     """
 
-    data_dir = "./payloads/"
-    filename = "".join([data_dir, f"{filename}.json"])
+    filename = "".join([directory, f"{filename}.json"])
 
-    # Create payload folder
-    if not os.path.exists(data_dir):
-        os.mkdir(data_dir)
-        print(f"~~~ Folder {data_dir} created!")
-    else:
-        print(f"~~~ Folder {data_dir} already exists")
+    if not os.path.exists(directory):
+        print(f"Creating folder {directory}")
+        os.makedirs(directory)  # Create the directory if it doesn't exist
 
     # Dump entire payload to file
-    print(f"~~~ Saving payload in {filename}")
     with open(filename, "w") as file:
         json.dump(payload, file, indent=4)
 
@@ -66,8 +63,8 @@ def ls():
     try:
         payload = manager._api_get(api_path)
         data = payload.get("data", [])
-        save_json(payload, "users_headers_and_data")
-        save_json(data, "users_data")
+        save_json(payload, "users_headers_and_data", "output/payloads/users/")
+        save_json(data, "users_data", "output/payloads/users/")
 
         headers = ["Username", "Group"]
         table = []
@@ -83,22 +80,8 @@ def ls():
         else:
             click.echo("No users found or data is empty.")
 
-    except requests.exceptions.HTTPError as e:
-        print(f"Error fetching users: HTTP Error {e.response.status_code}")
-        print(f"Response: {e.response.text}")
-        return
-    except requests.exceptions.ConnectionError:
-        print(f"Error fetching users: Connection failed.")
-        print(
-            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
-        )
-        return
-    except requests.exceptions.Timeout:
-        print(f"Error fetching users: The request timed out.")
-        print("The SD-WAN Manager might be slow to respond or unreachable.")
-        return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching users: {e}")
+        print(f"An unexpected error occurred: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
@@ -136,6 +119,8 @@ def add():
     try:
         response = manager._api_post(api_path, payload=user_payload)
 
+        save_json(response, "users_add", "output/payloads/users/")
+
         confirmed_username = (
             response.get("userName") if isinstance(response, dict) else None
         )
@@ -164,6 +149,7 @@ def delete():
 
     try:
         response = manager._api_delete(api_path)
+        save_json(response, "users_del", "output/payloads/users/")
         click.echo(f"User '{username}' successfully deleted.")
         # The _api_delete method returns a dict with a 'message' key if no JSON content
         if "message" in response:

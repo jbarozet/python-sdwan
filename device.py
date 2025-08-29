@@ -29,7 +29,9 @@ def cli():
 
 
 # -----------------------------------------------------------------------------
-def save_json(payload: str, filename: str = "payload"):
+def save_json(
+    payload: dict, filename: str = "payload", directory: str = "./output/payloads/"
+):
     """Save json response payload to a file
 
     Args:
@@ -37,18 +39,13 @@ def save_json(payload: str, filename: str = "payload"):
         filename: filename for saved files (default: "payload")
     """
 
-    data_dir = "./payloads/"
-    filename = "".join([data_dir, f"{filename}.json"])
+    filename = "".join([directory, f"{filename}.json"])
 
-    # Create payload folder
-    if not os.path.exists(data_dir):
-        os.mkdir(data_dir)
-        print("~~~ Folder %s created!" % data_dir)
-    else:
-        print("~~~ Folder %s already exists" % data_dir)
+    if not os.path.exists(directory):
+        print(f"Creating folder {directory}")
+        os.makedirs(directory)  # Create the directory if it doesn't exist
 
     # Dump entire payload to file
-    print(f"~~~ Saving payload in {filename}")
     with open(filename, "w") as file:
         json.dump(payload, file, indent=4)
 
@@ -67,8 +64,8 @@ def ls():
     try:
         payload = manager._api_get(api_path)
         data = payload.get("data", [])
-        save_json(payload, "devices_all")
-        save_json(data, "devices_data")
+        save_json(payload, "devices_all", "output/payloads/devices/")
+        save_json(data, "devices_data", "output/payloads/devices/")
         app_headers = [
             "UUID",
             "Model",
@@ -118,8 +115,8 @@ def get_device_by_ip():
     try:
         payload = manager._api_get(api_path)
         data = payload.get("data", [])
-        save_json(payload, "device_by_ip_all")
-        save_json(data, "device_by_ip_data")
+        save_json(payload, "device_by_ip_all", "output/payloads/devices/")
+        save_json(data, "device_by_ip_data", "output/payloads/devices/")
 
         for item in data:
             tr = [
@@ -166,7 +163,7 @@ def get_config():
     try:
         payload = manager._api_get(api_path)
         data = payload.get("data", [])
-        save_json(payload, "device_config_all")
+        save_json(payload, "device_config_all", "output/payloads/devices/")
         running_config = payload["config"]
         print(running_config)
 

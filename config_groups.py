@@ -127,6 +127,11 @@ class SDRoutingProfileTable:
         # Get list of profiles (summary)
         try:
             summary_data = self.manager._api_get(api_path_summary)
+            save_json(
+                summary_data,
+                "profiles_table",
+                "output/payloads/feature_profiles/sdrouting/",
+            )  # save payload response
 
         except requests.exceptions.RequestException as e:
             print(f"An unexpected error occurred: {e}")
@@ -163,6 +168,11 @@ class SDRoutingProfileTable:
                 continue
 
             full_profile_payload = sdrouting_feature_profile_fetcher.payload
+            save_json(
+                full_profile_payload,
+                f"{profile_name}",
+                "output/payloads/feature_profiles/sdrouting/",
+            )
 
             # Now, use the full_profile_payload to create a generic Profile object
             profile = Profile(
@@ -283,7 +293,11 @@ class SDWANProfileTable:
         # Get list of profiles (summary)
         try:
             summary_data = self.manager._api_get(api_path_summary)
-            save_json(summary_data, "2_profile_table")  # save payload response
+            save_json(
+                summary_data,
+                "profiles_table",
+                "output/payloads/feature_profiles/sdwan/",
+            )  # save payload response
 
         except requests.exceptions.RequestException as e:
             print(f"An unexpected error occurred: {e}")
@@ -319,7 +333,11 @@ class SDWANProfileTable:
                 )
                 continue
             full_profile_payload = sdwan_feature_profile_fetcher.payload
-            save_json(full_profile_payload, profile_name)
+            save_json(
+                full_profile_payload,
+                f"{profile_name}",
+                "output/payloads/feature_profiles/sdwan/",
+            )
 
             # Now, use the full_profile_payload to create a generic Profile object
             # Using .get() for robustness in case a key is missing in the payload
@@ -891,7 +909,9 @@ class ConfigGroupTable:
         try:
             # Fetch summary data first
             summary_data = self.manager._api_get(api_path)
-            save_json(summary_data, "1_config_group_table")  # save payload response
+            save_json(
+                summary_data, "config_groups_table", "output/payloads/config_groups/"
+            )  # save payload response
 
         except requests.exceptions.RequestException as e:
             print(
