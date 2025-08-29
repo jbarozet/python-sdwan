@@ -1,15 +1,33 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # =========================================================================
-# Python Script for SD-WAN Manager APIs
+# Cisco Catalyst SD-WAN Manager APIs
+# =========================================================================
 #
-# SD-WAN/SD-Routing UX 2.0 Configuration
-# Config Groups, Feature Profiles, Policy Groups
+# SD-WAN/SD-Routing UX 2.0 Device Config
+# Using Config Group and Feature Profiles
+#
+# Description:
+#   Get config-groups and feature profiles
+#   Get devices associated with config-group
+#   Get deployment values
+#   Save everything under output folder
+#
+# Output folder hierarchy:
+#   config_groups
+#       associated
+#       groups
+#       values
+#
+#   feature_profiles
+#       cli
+#       system
+#       transport
+#       service
+#       policy-object
 #
 # =========================================================================
 
 import logging
-import os
-from datetime import datetime
 
 # Import the new unified Manager class and the credentials function
 from config_groups import ConfigGroupTable, SDRoutingProfileTable, SDWANProfileTable

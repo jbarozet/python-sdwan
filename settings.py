@@ -1,4 +1,15 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
+# =========================================================================
+# Cisco Catalyst SD-WAN Manager APIs
+# =========================================================================
+#
+# Managing settings on SD-WAN Manager
+#
+# Description:
+#   List organization name and vBond IP or name
+#
+# =========================================================================
+
 
 import json
 import os
@@ -62,21 +73,21 @@ def get_org():
         click.echo(f"Organization: {org}")
 
     except requests.exceptions.HTTPError as e:
-        print(f"Error fetching users: HTTP Error {e.response.status_code}")
+        print(f"Error fetching org: HTTP Error {e.response.status_code}")
         print(f"Response: {e.response.text}")
         return
     except requests.exceptions.ConnectionError:
-        print("Error fetching users: Connection failed.")
+        print("Error fetching org: Connection failed.")
         print(
             "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
         )
         return
     except requests.exceptions.Timeout:
-        print(f"Error fetching users: The request timed out.")
+        print("Error fetching org: The request timed out.")
         print("The SD-WAN Manager might be slow to respond or unreachable.")
         return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching users: {e}")
+        print(f"An unexpected error occurred while fetching org: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
@@ -102,21 +113,21 @@ def get_vbond():
         click.echo(f"vBond: {vbond}")
 
     except requests.exceptions.HTTPError as e:
-        print(f"Error fetching users: HTTP Error {e.response.status_code}")
+        print(f"Error fetching validator: HTTP Error {e.response.status_code}")
         print(f"Response: {e.response.text}")
         return
     except requests.exceptions.ConnectionError:
-        print("Error fetching users: Connection failed.")
+        print("Error fetching validator: Connection failed.")
         print(
             "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
         )
         return
     except requests.exceptions.Timeout:
-        print(f"Error fetching users: The request timed out.")
+        print("Error fetching validator: The request timed out.")
         print("The SD-WAN Manager might be slow to respond or unreachable.")
         return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching users: {e}")
+        print(f"An unexpected error occurred while fetching validator: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return

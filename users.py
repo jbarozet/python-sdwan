@@ -1,3 +1,15 @@
+#! /usr/bin/env python3
+# =========================================================================
+# Cisco Catalyst SD-WAN Manager APIs
+# =========================================================================
+#
+# Managing users on SD-WAN Manager
+#
+# Description:
+#   List, add, and delete users on Cisco Catalyst SD-WAN Manager.
+#
+# =========================================================================
+
 import json
 import os
 import sys

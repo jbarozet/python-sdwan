@@ -1,6 +1,9 @@
-# SD-WAN Manager API Examples
+# Cisco Catalyst SD-WAN Manager API Examples
 
-This section provides practical Python examples demonstrating authentication to SD-WAN Manager and subsequent API interactions.
+[Cisco Official documentation](https://developer.cisco.com/docs/sdwan/)
+
+This repository provides practical Python examples
+demonstrating authentication to SD-WAN Manager and subsequent API interactions.
 Please note these examples are for demonstration purposes only and not production-ready.
 
 ## Install and Setup
@@ -66,4 +69,5 @@ Refer to:
 
 - [Getting Started](./docs/01-Getting-Started.md)
 - [Authentication](./docs/02-Authentication.md)
-- [Usage](./docs/monitoring.md)
+- [Alarms](./docs/alarms.md)
+- [Apps and App Route statistics](docs/approute.md)

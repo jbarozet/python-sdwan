@@ -1,5 +1,9 @@
+#! /usr/bin/env python3
 # =========================================================================
-# Cisco Catalyst SD-WAN Manager Authentication and common API methods
+# Cisco Catalyst SD-WAN Manager APIs
+# =========================================================================
+#
+# Authentication and common API methods
 #
 # Description:
 #   Session-based authentication for Cisco SD-WAN Manager

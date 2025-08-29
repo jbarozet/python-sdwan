@@ -1,4 +1,14 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
+# =========================================================================
+# Cisco Catalyst SD-WAN Manager APIs
+# =========================================================================
+#
+# Managing devices on SD-WAN Manager
+#
+# Description:
+#   List devices, get device by IP, get device configuration
+#
+# =========================================================================
 
 import json
 import os
@@ -86,21 +96,21 @@ def ls():
         click.echo(tabulate.tabulate(table, app_headers, tablefmt="fancy_grid"))
 
     except requests.exceptions.HTTPError as e:
-        print(f"Error fetching users: HTTP Error {e.response.status_code}")
+        print(f"Error fetching devices: HTTP Error {e.response.status_code}")
         print(f"Response: {e.response.text}")
         return
     except requests.exceptions.ConnectionError:
-        print("Error fetching users: Connection failed.")
+        print("Error fetching devices: Connection failed.")
         print(
             "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
         )
         return
     except requests.exceptions.Timeout:
-        print(f"Error fetching users: The request timed out.")
+        print("Error fetching devices: The request timed out.")
         print("The SD-WAN Manager might be slow to respond or unreachable.")
         return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching users: {e}")
+        print(f"An unexpected error occurred while fetching devices: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
@@ -149,21 +159,21 @@ def get_device_by_ip():
         print("Config status: ", tr[0])
 
     except requests.exceptions.HTTPError as e:
-        print(f"Error fetching users: HTTP Error {e.response.status_code}")
+        print(f"Error fetching devices: HTTP Error {e.response.status_code}")
         print(f"Response: {e.response.text}")
         return
     except requests.exceptions.ConnectionError:
-        print("Error fetching users: Connection failed.")
+        print("Error fetching devices: Connection failed.")
         print(
             "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
         )
         return
     except requests.exceptions.Timeout:
-        print(f"Error fetching users: The request timed out.")
+        print("Error fetching devices: The request timed out.")
         print("The SD-WAN Manager might be slow to respond or unreachable.")
         return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching users: {e}")
+        print(f"An unexpected error occurred while fetching devices: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
@@ -189,21 +199,21 @@ def get_config():
         print(running_config)
 
     except requests.exceptions.HTTPError as e:
-        print(f"Error fetching users: HTTP Error {e.response.status_code}")
+        print(f"Error fetching devices: HTTP Error {e.response.status_code}")
         print(f"Response: {e.response.text}")
         return
     except requests.exceptions.ConnectionError:
-        print("Error fetching users: Connection failed.")
+        print("Error fetching devices: Connection failed.")
         print(
             "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
         )
         return
     except requests.exceptions.Timeout:
-        print(f"Error fetching users: The request timed out.")
+        print("Error fetching devices: The request timed out.")
         print("The SD-WAN Manager might be slow to respond or unreachable.")
         return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching users: {e}")
+        print(f"An unexpected error occurred while fetching devices: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
