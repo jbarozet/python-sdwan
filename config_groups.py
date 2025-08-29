@@ -30,7 +30,7 @@
 import json
 import os
 from datetime import datetime
-from typing import Optional  # Added for type hinting
+from typing import Any, Dict, List, Optional  # Added for type hinting clarity
 
 import requests
 
@@ -374,11 +374,13 @@ class SDWANProfileTable:
 # -----------------------------------------------------------------------------
 class Device:
     """
-    Represents a device associated with a configuration group.
+    Represents a device associated with a configuration group, including its variables.
     """
 
     def __init__(self, device_data: dict):
-        self.id = device_data.get("id")
+        self.id = device_data.get(
+            "id"
+        )  # This 'id' comes from the /device/associate API
         self.site_name = device_data.get("site-name")
         self.host_name = device_data.get("host-name")
         self.site_id = device_data.get("site-id")
@@ -396,10 +398,13 @@ class Device:
         self.config_group_up_to_date = device_data.get("configGroupUpToDate")
         self.is_deployable = device_data.get("isDeployable")
         self.license_status = device_data.get("licenseStatus")
+        self.variables: List[
+            Dict[str, str]
+        ] = []  # New attribute to store device variables
 
     def to_dict(self):
         """Converts the Device object to a dictionary for JSON serialization."""
-        return {
+        data = {
             "id": self.id,
             "site-name": self.site_name,
             "host-name": self.host_name,
@@ -419,6 +424,9 @@ class Device:
             "isDeployable": self.is_deployable,
             "licenseStatus": self.license_status,
         }
+        if self.variables:  # Only include if variables exist
+            data["variables"] = self.variables
+        return data
 
     def display(self):
         """Prints the details of the device."""
@@ -430,6 +438,13 @@ class Device:
         print(f"        hierarchy name: {self.hierarchy_name_path}")
         print(f"        hierarchy type: {self.hierarchy_type_path}")
         print(f"        Config Status: {self.config_status_message}")
+        if self.variables:
+            print(f"        Variables ({len(self.variables)}):")
+            for var in self.variables:
+                # Some variables might not have a 'value' key (e.g., 'ipv6_strict_control')
+                print(
+                    f"          - Name: {var.get('name')}, Value: {var.get('value', 'N/A')}, Type: {var.get('type', 'N/A')}"
+                )
         # Add more details as needed
 
     def save_to_file(self, directory="output/config_groups/associated"):
@@ -441,9 +456,7 @@ class Device:
             Defaults to 'output/config_groups/associated'.
         """
         if not os.path.exists(directory):
-            os.makedirs(
-                directory, exist_ok=True
-            )  # Use exist_ok=True to prevent error if dir already exists
+            os.makedirs(directory, exist_ok=True)
 
         # Sanitize the hostname to create a valid filename
         sanitized_name = "".join(
@@ -606,7 +619,7 @@ class Profile:
 # -----------------------------------------------------------------------------
 class ConfigGroup:
     """
-    Represents a configuration group, its associated profiles, and devices.
+    Represents a configuration group, its associated profiles, devices, and their deployment values.
     """
 
     def __init__(
@@ -623,7 +636,7 @@ class ConfigGroup:
         profiles_data,
         version,
         state,
-        devices_data,  # This will now be the raw list of device dictionaries
+        devices_data,  # Raw list of device dictionaries from /device/associate
         numberOfDevices,
         numberOfDevicesUpToDate,
         origin,
@@ -633,6 +646,9 @@ class ConfigGroup:
         fullConfigCli,
         iosConfigCli,
         versionIncrementReason,
+        device_variables_data: Optional[
+            List[Dict[str, Any]]
+        ] = None,  # Raw list of device variable dictionaries from /device/variables (extracted 'devices' list)
     ):
         self.id = id
         self.name = name
@@ -643,7 +659,7 @@ class ConfigGroup:
         self.lastUpdatedOn = self._convert_timestamp_to_datetime(lastUpdatedOn)
         self.createdBy = createdBy
         self.createdOn = self._convert_timestamp_to_datetime(createdOn)
-        self.profiles = []  # Initialize profiles as a list of Profile objects
+        self.profiles = []
 
         # Get profiles list
         if profiles_data and isinstance(profiles_data, list):
@@ -664,11 +680,32 @@ class ConfigGroup:
                     )
                 )
 
-        # Get devices list
-        self.devices = []  # Initialize devices as a list of Device objects
+        # Get devices list and map variables to them
+        self.devices = []
         if devices_data and isinstance(devices_data, list):
+            # Create a temporary mapping of deviceId to Device object for easy lookup
+            # The 'id' key comes from the /device/associate API response
+            devices_by_id = {}
             for device_dict in devices_data:
-                self.devices.append(Device(device_dict))  # Create Device objects
+                device_obj = Device(device_dict)
+                self.devices.append(device_obj)
+                devices_by_id[device_obj.id] = device_obj
+
+            # Now, if device_variables_data is provided, assign variables to the correct Device objects
+            if device_variables_data and isinstance(device_variables_data, list):
+                for var_entry in device_variables_data:
+                    # Use 'device-id' as per the API response for /device/variables
+                    device_id_from_variables_payload = var_entry.get("device-id")
+                    variables_list = var_entry.get("variables", [])
+
+                    # Match the device ID from the variables payload to the Device object's ID
+                    if (
+                        device_id_from_variables_payload
+                        and device_id_from_variables_payload in devices_by_id
+                    ):
+                        devices_by_id[
+                            device_id_from_variables_payload
+                        ].variables = variables_list
 
         self.version = version
         self.state = state
@@ -713,7 +750,7 @@ class ConfigGroup:
             "state": self.state,
             "devices": [
                 device.to_dict() for device in self.devices
-            ],  # Recursively call to_dict for devices
+            ],  # Recursively call to_dict for devices (now includes variables)
             "numberOfDevices": self.numberOfDevices,
             "numberOfDevicesUpToDate": self.numberOfDevicesUpToDate,
             "origin": self.origin,
@@ -724,6 +761,23 @@ class ConfigGroup:
             "iosConfigCli": self.iosConfigCli,
             "versionIncrementReason": self.versionIncrementReason,
         }
+
+    def get_device_variables_for_saving(self) -> List[Dict[str, Any]]:
+        """
+        Extracts device variables from associated Device objects in the format
+        expected for saving to the 'values' directory.
+        """
+        variables_list = []
+        for device in self.devices:
+            if device.variables:
+                variables_list.append(
+                    {
+                        "deviceId": device.id,  # Using 'deviceId' for saving, as it's common practice
+                        "hostName": device.host_name,  # Include hostname for readability
+                        "variables": device.variables,
+                    }
+                )
+        return variables_list
 
     def save_to_file(self, base_output_directory="output/config_groups"):
         """
@@ -774,7 +828,9 @@ class ConfigGroup:
                 f"Saving associated devices for '{self.name}' to '{config_group_devices_directory}'..."
             )
             for device in self.devices:
-                device.save_to_file(config_group_devices_directory)
+                device.save_to_file(
+                    config_group_devices_directory
+                )  # Call the new method on Device
 
     def __repr__(self):
         return f"ConfigGroup(name='{self.name}', id='{self.id}', profiles_count={len(self.profiles)}, devices_count={len(self.devices)})"
@@ -808,11 +864,11 @@ class ConfigGroup:
 # -----------------------------------------------------------------------------
 class ConfigGroupTable:
     """
-    Manages a collection of configuration groups, fetching their details and associated devices.
+    Manages a collection of configuration groups, fetching their details,
+    associated devices, and device variables.
     """
 
-    # Initialize a list to store the structured device objects
-    config_groups_objects = []
+    config_groups_objects: List["ConfigGroup"] = []  # Type hint for clarity
 
     def __init__(
         self,
@@ -824,53 +880,97 @@ class ConfigGroupTable:
         Initializes ConfigGroupTable and fetches config group data.
         Optionally takes SDWANProfileTable and SDRoutingProfileTable instances to save all data together.
         """
+
         self.manager = manager
         self.sdwan_profiles_table = sdwan_profiles_table
         self.sdrouting_profiles_table = sdrouting_profiles_table
         self.config_groups_objects = []
 
+        # API endpoint for config group summary
         api_path = "/v1/config-group/"
-
-        print("\n--- Collecting Config Groups ---")
-
         try:
+            # Fetch summary data first
             summary_data = self.manager._api_get(api_path)
-            save_json(summary_data, "1_config_group_table")
+            save_json(summary_data, "1_config_group_table")  # save payload response
 
         except requests.exceptions.RequestException as e:
-            print(f"An unexpected error occurred: {e}")
+            print(
+                f"An unexpected error occurred during config group summary fetch: {e}"
+            )
             if hasattr(e, "response") and e.response is not None:
                 print(f"Status: {e.response.status_code}, Response: {e.response.text}")
             return
 
-        for group_dict in summary_data:
+        print("\n--- Collecting Config Groups and Associated Data ---")
+        # Iterate through the raw data and create ConfigGroup objects
+        for group_dict in summary_data:  # Iterate through the summary data
             config_group_id = group_dict.get("id")
+            config_group_name = group_dict.get("name", "Unknown Config Group")
             number_of_devices = group_dict.get("numberOfDevices", 0)
-            detailed_devices_list_raw = []
+            detailed_devices_list_raw = []  # Will store raw device dictionaries
+            device_variables_raw = []  # Will store raw device variables (extracted from API response)
 
+            # If there are devices associated, fetch their details from the specific API
             if number_of_devices > 0 and config_group_id:
+                # Corrected API endpoint for associated devices
                 device_api_path = f"/v1/config-group/{config_group_id}/device/associate"
-
-                print("\n--- Collecting Associated Devices ---")
                 print(
-                    f"  Fetching {number_of_devices} devices for Config Group '{group_dict.get('name')}' (ID: {config_group_id})"
+                    f"  Fetching {number_of_devices} devices for Config Group '{config_group_name}' (ID: {config_group_id})"
                 )
                 try:
+                    # The API returns a dictionary with a 'devices' key
                     response_data = self.manager._api_get(device_api_path)
                     detailed_devices_list_raw = response_data.get("devices", [])
+                    save_json(
+                        detailed_devices_list_raw,
+                        f"{config_group_name}_associated_devices",
+                        "output/payloads/config_groups/associated/",
+                    )
 
                 except requests.exceptions.RequestException as e:
                     print(
-                        f"Error fetching devices for Config Group '{group_dict.get('name')}' (ID: {config_group_id}): {e}"
+                        f"Error fetching devices for Config Group '{config_group_name}' (ID: {config_group_id}): {e}"
                     )
                     if hasattr(e, "response") and e.response is not None:
                         print(
                             f"Status: {e.response.status_code}, Response: {e.response.text}"
                         )
+                    # Keep detailed_devices_list_raw as empty if there's an error
 
+                # Fetch device variables for this config group
+                variables_api_path = (
+                    f"/v1/config-group/{config_group_id}/device/variables"
+                )
+                print(
+                    f"  Fetching device variables for Config Group '{config_group_name}' (ID: {config_group_id})"
+                )
+                try:
+                    # This API returns a dictionary with a 'devices' key, containing the list of device variables
+                    full_variables_response = self.manager._api_get(variables_api_path)
+                    # Save the full response for debugging/inspection
+                    save_json(
+                        full_variables_response,
+                        f"{config_group_name}_device_variables_full_payload",
+                        "output/payloads/config_groups/values/",
+                    )
+
+                    # Extract the actual list of device variables from the 'devices' key
+                    device_variables_raw = full_variables_response.get("devices", [])
+
+                except requests.exceptions.RequestException as e:
+                    print(
+                        f"Error fetching device variables for Config Group '{config_group_name}' (ID: {config_group_id}): {e}"
+                    )
+                    if hasattr(e, "response") and e.response is not None:
+                        print(
+                            f"Status: {e.response.status_code}, Response: {e.response.text}"
+                        )
+                    device_variables_raw = []  # Keep empty on error
+
+            # Create the ConfigGroup object, passing profile, device, and device variable dictionaries
             config_group = ConfigGroup(
                 id=config_group_id,
-                name=group_dict.get("name"),
+                name=config_group_name,
                 description=group_dict.get("description"),
                 source=group_dict.get("source"),
                 solution=group_dict.get("solution"),
@@ -878,10 +978,10 @@ class ConfigGroupTable:
                 lastUpdatedOn=group_dict.get("lastUpdatedOn"),
                 createdBy=group_dict.get("createdBy"),
                 createdOn=group_dict.get("createdOn"),
-                profiles_data=group_dict.get("profiles"),
+                profiles_data=group_dict.get("profiles"),  # Pass the profiles dict
                 version=group_dict.get("version"),
                 state=group_dict.get("state"),
-                devices_data=detailed_devices_list_raw,
+                devices_data=detailed_devices_list_raw,  # Pass the device dictionaries
                 numberOfDevices=number_of_devices,
                 numberOfDevicesUpToDate=group_dict.get("numberOfDevicesUpToDate"),
                 origin=group_dict.get("origin"),
@@ -891,6 +991,7 @@ class ConfigGroupTable:
                 fullConfigCli=group_dict.get("fullConfigCli"),
                 iosConfigCli=group_dict.get("iosConfigCli"),
                 versionIncrementReason=group_dict.get("versionIncrementReason"),
+                device_variables_data=device_variables_raw,  # Pass the extracted device variables list
             )
             self.config_groups_objects.append(config_group)
 
@@ -905,7 +1006,7 @@ class ConfigGroupTable:
         for cg_obj in self.config_groups_objects:
             cg_obj.save_to_file(directory)
 
-        # Save the feature profiles if the instances were provided
+        # Now, also save the feature profiles if the instances were provided
         if self.sdwan_profiles_table:
             print("\n--- Saving SD-WAN Feature Profiles ---")
             self.sdwan_profiles_table.save_profiles()
@@ -913,9 +1014,50 @@ class ConfigGroupTable:
             print("\n--- Saving SD-Routing Feature Profiles ---")
             self.sdrouting_profiles_table.save_profiles()
 
+        # NEW: Call the method to save device variables separately
+        self.save_device_variables(os.path.join(directory, "values"))
+
         print(
             "\nAll Config Groups, Associated Devices, and Feature Profiles saved successfully!"
         )
+
+    def save_device_variables(self, directory="output/config_groups/values"):
+        """
+        Saves the deployment values (device variables) for each config group
+        into separate JSON files.
+        """
+        print(f"\n--- Saving Device Variables to {directory} ---")
+        if not os.path.exists(directory):
+            os.makedirs(directory, exist_ok=True)
+
+        for cg_obj in self.config_groups_objects:
+            variables_to_save = cg_obj.get_device_variables_for_saving()
+            if variables_to_save:
+                # Sanitize the config group name for the filename
+                sanitized_name = "".join(
+                    c for c in cg_obj.name if c.isalnum() or c in (" ", ".", "_", "-")
+                ).strip()
+                sanitized_name = sanitized_name.replace(" ", "_")
+
+                if not sanitized_name:
+                    filename = f"variables_config_group_{cg_obj.id}.json"
+                else:
+                    filename = f"{sanitized_name}_variables.json"
+
+                filepath = os.path.join(directory, filename)
+
+                try:
+                    with open(filepath, "w") as f:
+                        json.dump(variables_to_save, f, indent=4)
+                    print(
+                        f"Successfully saved variables for ConfigGroup '{cg_obj.name}' to '{filepath}'"
+                    )
+                except Exception as e:
+                    print(
+                        f"Error saving variables for ConfigGroup '{cg_obj.name}' to '{filepath}': {e}"
+                    )
+            else:
+                print(f"No variables found for ConfigGroup '{cg_obj.name}'.")
 
     def access_data(self):
         print("\n--- Example: Accessing data from the second ConfigGroup object ---")
@@ -938,5 +1080,11 @@ class ConfigGroupTable:
                     print(
                         f"  - Device Hostname: {device.host_name}, IP: {device.device_ip}, Model: {device.device_model}"
                     )
+                    if device.variables:
+                        print(f"    Variables for {device.host_name}:")
+                        for var in device.variables:
+                            print(
+                                f"      - {var.get('name')}: {var.get('value', 'N/A')}"
+                            )  # Use .get() with default for safety
             else:
                 print("No devices associated with the first config group.")
