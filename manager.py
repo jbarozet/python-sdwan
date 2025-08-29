@@ -55,19 +55,26 @@ class Manager:
         self.jsessionid = None
         self.token = None
         self.dataservice_base_url = None  # Base URL for API calls (e.g., /dataservice)
+        self.version = None  # Will be populated by about() method
+        self.applicationVersion = None  # Will be populated by about() method
+        self.applicationServer = None  # Will be populated by about() method
+        self.time = None  # Will be populated by about() method
+        self.timeZone = None  # Will be populated by about() method
         self.status = False  # Indicates if authentication was successful
 
         # Perform authentication during initialization
         self._authenticate()
         if self.dataservice_base_url:  # Check if authentication was successful
             self.status = True
-            print(f"Base URL: {self.dataservice_base_url}")
-            # print(f"Session headers: {self.session.headers}") # Uncomment for verbose debugging
             logger.info("Successfully authenticated with SD-WAN Manager.")
             logger.info(f"Session headers: {self.session.headers}")
+            logger.info(f"Base URL: {self.dataservice_base_url}")
+
         else:
             logger.error("Failed to authenticate with SD-WAN Manager. Exiting.")
             sys.exit(1)  # Exit if authentication fails
+
+        self.about()  # Populate version and other info
 
     def _login(self):
         """
@@ -145,6 +152,44 @@ class Manager:
             self.session.headers.update({"X-XSRF-TOKEN": self.token})
 
         self.dataservice_base_url = f"https://{self.host}:{self.port}/dataservice"
+
+    def about(self):
+        """
+        Fetches and returns key information about the SD-WAN Manager application.
+
+        Returns:
+            Optional[Dict[str, Any]]: A dictionary containing 'version',
+            'applicationVersion', 'applicationServer', 'time', and 'timeZone'
+            if successful, otherwise None.
+        """
+        api_path = "/client/about"
+
+        try:
+            full_payload = self._api_get(api_path)
+
+            # The actual data is nested under the "data" key in the payload
+            data = full_payload.get("data")
+
+            self.version = data.get("version")
+            self.applicationVersion = data.get("applicationVersion")
+            self.applicationServer = data.get("applicationServer")
+            self.time = data.get("time")
+            self.timeZone = data.get("timeZone")
+
+            # Print the information
+            print("\nSD-WAN Manager Information:")
+            print(f" Version: {self.version}")
+            print(f" Application Version: {self.applicationVersion}")
+            print(f" Application Server: {self.applicationServer}")
+            print(f" Time: {self.time}")
+            print(f" Time Zone: {self.timeZone}")
+            print()
+
+        except requests.exceptions.RequestException as e:
+            print(f"An unexpected error occurred: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+            return
 
     def _api_get(self, path: str, params: Optional[dict] = None):
         """
