@@ -11,6 +11,7 @@
 # =========================================================================
 
 import json
+import logging
 import os
 
 import click
@@ -175,19 +176,24 @@ def get_config():
 
 
 # -----------------------------------------------------------------------------
-# Create session with Cisco Catalyst SD-WAN Manager
-# -----------------------------------------------------------------------------
-print("\n--- Authenticating to SD-WAN Manager ---")
-host, port, user, password = get_manager_credentials_from_env()
-manager = Manager(host, port, user, password)
-
-
-# ----------------------------------------------------------------------------------------------------
-# Run commands
-# ----------------------------------------------------------------------------------------------------
-cli.add_command(ls)
-cli.add_command(get_config)
-cli.add_command(get_device_by_ip)
-
 if __name__ == "__main__":
+    log_file_path = "sdwan_api.log"
+
+    logging.basicConfig(
+        filename=log_file_path,  # <--- Add this line to specify the log file
+        filemode="a",  # <--- Optional: 'a' for append (default), 'w' for overwrite
+        format="%(levelname)s (%(asctime)s): %(message)s (Line: %(lineno)d [%(filename)s])",
+        datefmt="%d/%m/%Y %I:%M:%S %p",
+        level=logging.INFO,
+    )
+
+    # Create session with Cisco Catalyst SD-WAN Manager
+    print("\n--- Authenticating to SD-WAN Manager ---")
+    host, port, user, password = get_manager_credentials_from_env()
+    manager = Manager(host, port, user, password)
+
+    # Run commands
+    cli.add_command(ls)
+    cli.add_command(get_config)
+    cli.add_command(get_device_by_ip)
     cli()

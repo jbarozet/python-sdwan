@@ -62,7 +62,9 @@ class Manager:
         if self.dataservice_base_url:  # Check if authentication was successful
             self.status = True
             print(f"Base URL: {self.dataservice_base_url}")
-            print(f"Session headers: {self.session.headers}")
+            # print(f"Session headers: {self.session.headers}") # Uncomment for verbose debugging
+            logger.info("Successfully authenticated with SD-WAN Manager.")
+            logger.info(f"Session headers: {self.session.headers}")
         else:
             logger.error("Failed to authenticate with SD-WAN Manager. Exiting.")
             sys.exit(1)  # Exit if authentication fails
@@ -165,7 +167,7 @@ class Manager:
             )
 
         url = cast(str, self.dataservice_base_url) + path
-        # print(f"Making GET request to: {url}") # Uncomment for verbose debugging
+        logger.info(f"Making GET request to: {url} with params: {params}")
         response = self.session.get(url=url, params=params)
         response.raise_for_status()
         return response.json()
@@ -191,7 +193,7 @@ class Manager:
             )
 
         url = cast(str, self.dataservice_base_url) + path
-        print(f"Making POST request to: {url} with payload: {payload}")
+        logger.info(f"Making POST request to: {url} with payload: {payload}")
         response = self.session.post(url=url, json=payload)
         response.raise_for_status()
 
@@ -218,7 +220,7 @@ class Manager:
             )
 
         url = cast(str, self.dataservice_base_url) + path
-        print(f"Making PUT request to: {url} with payload: {payload}")
+        logger.info(f"Making PUT request to: {url} with payload: {payload}")
         response = self.session.put(url=url, json=payload)
         response.raise_for_status()
 
@@ -245,8 +247,8 @@ class Manager:
             )
 
         url = cast(str, self.dataservice_base_url) + path
-        print(f"Making DELETE request to: {url}")
         response = self.session.delete(url=url, params=params)
+        logger.info(f"Making DELETE request to: {url} with params: {params}")
         response.raise_for_status()
 
         # DELETE requests often return 204 No Content, so response.json() might fail.
@@ -295,4 +297,4 @@ def get_manager_credentials_from_env():
         int(manager_port),
         manager_username,
         manager_password,
-    )  # Ensure port is int
+    )

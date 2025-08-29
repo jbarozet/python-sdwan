@@ -89,7 +89,11 @@ def quit():
 
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
+    log_file_path = "application.log"  # You can make this more dynamic if needed
+
     logging.basicConfig(
+        filename=log_file_path,  # <--- Add this line to specify the log file
+        filemode="a",  # <--- Optional: 'a' for append (default), 'w' for overwrite
         format="%(levelname)s (%(asctime)s): %(message)s (Line: %(lineno)d [%(filename)s])",
         datefmt="%d/%m/%Y %I:%M:%S %p",
         level=logging.INFO,

@@ -11,8 +11,8 @@
 # =========================================================================
 
 import json
+import logging
 import os
-import sys
 
 import click
 import requests
@@ -161,20 +161,29 @@ def delete():
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
 
+    log_file_path = "application.log"  # You can make this more dynamic if needed
+
 
 # -----------------------------------------------------------------------------
-# Create session with Cisco Catalyst SD-WAN Manager
-# -----------------------------------------------------------------------------
-print("\n--- Authenticating to SD-WAN Manager ---")
-host, port, user, password = get_manager_credentials_from_env()
-manager = Manager(host, port, user, password)
-
-# -----------------------------------------------------------------------------
-# Run commands
-# -----------------------------------------------------------------------------
-cli.add_command(ls)
-cli.add_command(add)
-cli.add_command(delete)
-
 if __name__ == "__main__":
+    log_file_path = "sdwan_api.log"
+
+    logging.basicConfig(
+        filename=log_file_path,  # <--- Add this line to specify the log file
+        filemode="a",  # <--- Optional: 'a' for append (default), 'w' for overwrite
+        format="%(levelname)s (%(asctime)s): %(message)s (Line: %(lineno)d [%(filename)s])",
+        datefmt="%d/%m/%Y %I:%M:%S %p",
+        level=logging.INFO,
+    )
+
+    # Create session with Cisco Catalyst SD-WAN Manager
+    print("\n--- Authenticating to SD-WAN Manager ---")
+    host, port, user, password = get_manager_credentials_from_env()
+    manager = Manager(host, port, user, password)
+
+    # Run commands
+    cli.add_command(ls)
+    cli.add_command(add)
+    cli.add_command(delete)
+
     cli()

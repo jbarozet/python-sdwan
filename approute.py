@@ -13,6 +13,7 @@
 
 import cmd
 import json
+import logging
 import os
 
 import click
@@ -81,22 +82,8 @@ def app_list():
 
         click.echo(tabulate.tabulate(table, app_headers, tablefmt="fancy_grid"))
 
-    except requests.exceptions.HTTPError as e:
-        print(f"Error fetching apps: HTTP Error {e.response.status_code}")
-        print(f"Response: {e.response.text}")
-        return
-    except requests.exceptions.ConnectionError:
-        print("Error fetching apps: Connection failed.")
-        print(
-            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
-        )
-        return
-    except requests.exceptions.Timeout:
-        print("Error fetching apps: The request timed out.")
-        print("The SD-WAN Manager might be slow to respond or unreachable.")
-        return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching apps: {e}")
+        print(f"An unexpected error occurred: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
@@ -130,22 +117,8 @@ def app_list2():
 
         click.echo(cli.columnize(table, displaywidth=120))
 
-    except requests.exceptions.HTTPError as e:
-        print(f"Error fetching apps: HTTP Error {e.response.status_code}")
-        print(f"Response: {e.response.text}")
-        return
-    except requests.exceptions.ConnectionError:
-        print("Error fetching apps: Connection failed.")
-        print(
-            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
-        )
-        return
-    except requests.exceptions.Timeout:
-        print("Error fetching apps: The request timed out.")
-        print("The SD-WAN Manager might be slow to respond or unreachable.")
-        return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching apps: {e}")
+        print(f"An unexpected error occurred: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
@@ -179,22 +152,8 @@ def app_qosmos():
 
         click.echo(tabulate.tabulate(table, app_headers, tablefmt="fancy_grid"))
 
-    except requests.exceptions.HTTPError as e:
-        print(f"Error fetching apps: HTTP Error {e.response.status_code}")
-        print(f"Response: {e.response.text}")
-        return
-    except requests.exceptions.ConnectionError:
-        print("Error fetching apps: Connection failed.")
-        print(
-            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
-        )
-        return
-    except requests.exceptions.Timeout:
-        print("Error fetching apps: The request timed out.")
-        print("The SD-WAN Manager might be slow to respond or unreachable.")
-        return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching apps: {e}")
+        print(f"An unexpected error occurred: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
@@ -223,22 +182,8 @@ def approute_fields():
 
         click.echo(cli.columnize(tags, displaywidth=120))
 
-    except requests.exceptions.HTTPError as e:
-        print(f"Error fetching approute fields: HTTP Error {e.response.status_code}")
-        print(f"Response: {e.response.text}")
-        return
-    except requests.exceptions.ConnectionError:
-        print("Error fetching approute fields: Connection failed.")
-        print(
-            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
-        )
-        return
-    except requests.exceptions.Timeout:
-        print("Error fetching approute fields: The request timed out.")
-        print("The SD-WAN Manager might be slow to respond or unreachable.")
-        return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching approute fields: {e}")
+        print(f"An unexpected error occurred: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
@@ -405,22 +350,8 @@ def approute_stats():
             tabulate.tabulate(table, app_route_stats_headers, tablefmt="fancy_grid")
         )
 
-    except requests.exceptions.HTTPError as e:
-        print(f"Error posting request: HTTP Error {e.response.status_code}")
-        print(f"Response: {e.response.text}")
-        return
-    except requests.exceptions.ConnectionError:
-        print("Error posting request: Connection failed.")
-        print(
-            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
-        )
-        return
-    except requests.exceptions.Timeout:
-        print("Error posting request: The request timed out.")
-        print("The SD-WAN Manager might be slow to respond or unreachable.")
-        return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while posting request: {e}")
+        print(f"An unexpected error occurred: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
@@ -493,20 +424,6 @@ def approute_device():
                 tabulate.tabulate(table, app_route_stats_headers, tablefmt="grid")
             )
 
-    except requests.exceptions.HTTPError as e:
-        print(f"Error: HTTP Error {e.response.status_code}")
-        print(f"Response: {e.response.text}")
-        return
-    except requests.exceptions.ConnectionError:
-        print(f"Error: Connection failed.")
-        print(
-            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
-        )
-        return
-    except requests.exceptions.Timeout:
-        print("Error: The request timed out.")
-        print("The SD-WAN Manager might be slow to respond or unreachable.")
-        return
     except requests.exceptions.RequestException as e:
         print(f"An unexpected error occurred: {e}")
         if hasattr(e, "response") and e.response is not None:
@@ -515,22 +432,27 @@ def approute_device():
 
 
 # -----------------------------------------------------------------------------
-# Create session with Cisco Catalyst SD-WAN Manager
-# -----------------------------------------------------------------------------
-print("\n--- Authenticating to SD-WAN Manager ---")
-host, port, user, password = get_manager_credentials_from_env()
-manager = Manager(host, port, user, password)
-
-
-# ----------------------------------------------------------------------------------------------------
-# Run commands
-# ----------------------------------------------------------------------------------------------------
-cli.add_command(app_list)
-cli.add_command(app_list2)
-cli.add_command(app_qosmos)
-cli.add_command(approute_fields)
-cli.add_command(approute_stats)
-cli.add_command(approute_device)
-
 if __name__ == "__main__":
+    log_file_path = "sdwan_api.log"
+
+    logging.basicConfig(
+        filename=log_file_path,  # <--- Add this line to specify the log file
+        filemode="a",  # <--- Optional: 'a' for append (default), 'w' for overwrite
+        format="%(levelname)s (%(asctime)s): %(message)s (Line: %(lineno)d [%(filename)s])",
+        datefmt="%d/%m/%Y %I:%M:%S %p",
+        level=logging.INFO,
+    )
+
+    # Create session with Cisco Catalyst SD-WAN Manager
+    print("\n--- Authenticating to SD-WAN Manager ---")
+    host, port, user, password = get_manager_credentials_from_env()
+    manager = Manager(host, port, user, password)
+
+    # Run commands
+    cli.add_command(app_list)
+    cli.add_command(app_list2)
+    cli.add_command(app_qosmos)
+    cli.add_command(approute_fields)
+    cli.add_command(approute_stats)
+    cli.add_command(approute_device)
     cli()
