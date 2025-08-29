@@ -89,7 +89,7 @@ def quit():
 
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    log_file_path = "application.log"  # You can make this more dynamic if needed
+    log_file_path = "sdwan_api.log"  # You can make this more dynamic if needed
 
     logging.basicConfig(
         filename=log_file_path,  # <--- Add this line to specify the log file
