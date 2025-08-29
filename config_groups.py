@@ -208,11 +208,9 @@ class SDRoutingProfileTable:
 
     def save_profiles(self, directory="output/feature_profiles/sdrouting"):
         print(f"\n--- Saving SD-Routing Feature Profiles in {directory}\n")
-
+        # Use the save_to_file method of the generic Profile object
         for profile in self.profiles_table:
-            profile.save_to_file(
-                directory
-            )  # Use the save_to_file method of the generic Profile object
+            profile.save_to_file(directory)
 
 
 # -----------------------------------------------------------------------------
@@ -368,7 +366,7 @@ class SDWANProfileTable:
 
     def save_profiles(self, directory="output/feature_profiles/sdwan"):
         print(f"\n--- Saving SD-WAN Feature Profiles in {directory}\n")
-
+        # Use the save_to_file method of the generic Profile object
         for profile in self.profiles_table:
             profile.save_to_file(directory)
 
@@ -493,7 +491,69 @@ class Profile:
             "origin": self.origin,
         }
 
-    def save_to_file(self, directory="output/feature_profiles"):
+    def save_to_file(self, base_directory="output/feature_profiles"):
+        """
+        Saves the Profile object's data to a JSON file within a subfolder
+        based on its type (self.type).
+
+        Args:
+            base_directory (str): The base directory where type-specific subfolders
+            will be created. Defaults to 'output/feature_profiles'.
+        """
+        if not self.type:
+            print(
+                f"Warning: Profile '{self.name}' (ID: {self.id}) has no type. Saving to base directory."
+            )
+            target_directory = base_directory
+        else:
+            # Sanitize the type name for directory creation (good practice for file paths)
+            # This keeps alphanumeric characters, underscores, and hyphens.
+            sanitized_type = "".join(
+                c for c in self.type if c.isalnum() or c in ("_", "-")
+            ).strip()
+            if not sanitized_type:
+                sanitized_type = (
+                    "unknown_type"  # Fallback if type becomes empty after sanitization
+                )
+
+            # Construct the full path for the type-specific subfolder
+            target_directory = os.path.join(base_directory, sanitized_type)
+
+        # Create the target directory (including any necessary parent directories)
+        # if it doesn't exist. exist_ok=True prevents an error if the directory already exists.
+        try:
+            os.makedirs(target_directory, exist_ok=True)
+        except OSError as e:
+            print(f"Error creating directory '{target_directory}': {e}")
+            return  # Exit the function if directory creation fails
+
+        # Sanitize the profile name to create a valid filename
+        # Replace non-alphanumeric characters (except spaces, dots, underscores, hyphens) with nothing
+        # Then replace spaces with underscores for better filename compatibility
+        sanitized_name = "".join(
+            c for c in self.name if c.isalnum() or c in (" ", ".", "_", "-")
+        ).strip()
+        sanitized_name = sanitized_name.replace(" ", "_")
+
+        # Fallback if name becomes empty or invalid after sanitization
+        if not sanitized_name:
+            filename = f"profile_{self.id}.json"
+        else:
+            filename = f"{sanitized_name}.json"
+
+        # Construct the full file path
+        filepath = os.path.join(target_directory, filename)
+
+        try:
+            with open(filepath, "w") as f:
+                json.dump(
+                    self.to_dict(), f, indent=4
+                )  # Use indent=4 for pretty-printing JSON
+            print(f"Successfully saved Profile '{self.name}' to '{filepath}'")
+        except Exception as e:
+            print(f"Error saving Profile '{self.name}' to '{filepath}': {e}")
+
+    def save_to_file2(self, directory="output/feature_profiles"):
         """
         Saves the Profile object's data to a JSON file.
 
@@ -664,7 +724,7 @@ class ConfigGroup:
             "versionIncrementReason": self.versionIncrementReason,
         }
 
-    def save_to_file(self, directory="output/config_groups"):
+    def save_to_file(self, directory="output/config_groups/groups"):
         """
         Saves the ConfigGroup object's data to a JSON file.
 
@@ -817,10 +877,11 @@ class ConfigGroupTable:
         for cg_obj in self.config_groups_objects:
             cg_obj.display()
 
-    def save_to_file(self, directory="output"):
+    def save_groups(self, directory="output/config_groups/groups"):
         print("\n---  Saving ConfigGroup Objects ---")
+        # Use the save_to_file method of the generic config-group object
         for cg_obj in self.config_groups_objects:
-            cg_obj.save_to_file()  # Save each config group to its own JSON file
+            cg_obj.save_to_file(directory)
 
     def access_data(self):
         print("\n--- Example: Accessing data from the second ConfigGroup object ---")
