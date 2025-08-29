@@ -145,24 +145,8 @@ def add():
         else:
             click.echo(f"User '{username_input}' successfully created.")
 
-    except requests.exceptions.HTTPError as e:
-        print(
-            f"Error adding user '{username_input}': HTTP Error {e.response.status_code}"
-        )
-        print(f"Response: {e.response.text}")
-        return
-    except requests.exceptions.ConnectionError:
-        print(f"Error adding user '{username_input}': Connection failed.")
-        print(
-            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
-        )
-        return
-    except requests.exceptions.Timeout:
-        print(f"Error adding user '{username_input}': The request timed out.")
-        print("The SD-WAN Manager might be slow to respond or unreachable.")
-        return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while adding user '{username_input}': {e}")
+        print(f"An unexpected error occurred: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
@@ -185,23 +169,11 @@ def delete():
         if "message" in response:
             click.echo(f"API Confirmation: {response['message']}")
 
-    except requests.exceptions.HTTPError as e:
-        print(f"Error deleting user '{username}': HTTP Error {e.response.status_code}")
-        print(f"Response: {e.response.text}")
-        sys.exit(1)  # Exit on critical failure for delete
-    except requests.exceptions.ConnectionError:
-        print(f"Error deleting user '{username}': Connection failed.")
-        print("Please check network connectivity or manager host/port.")
-        sys.exit(1)
-    except requests.exceptions.Timeout:
-        print(f"Error deleting user '{username}': The request timed out.")
-        print("The SD-WAN Manager might be slow to respond or unreachable.")
-        sys.exit(1)
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while deleting user '{username}': {e}")
+        print(f"An unexpected error occurred: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
-        sys.exit(1)
+        return
 
 
 # -----------------------------------------------------------------------------

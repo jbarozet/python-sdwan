@@ -95,22 +95,8 @@ def ls():
 
         click.echo(tabulate.tabulate(table, app_headers, tablefmt="fancy_grid"))
 
-    except requests.exceptions.HTTPError as e:
-        print(f"Error fetching devices: HTTP Error {e.response.status_code}")
-        print(f"Response: {e.response.text}")
-        return
-    except requests.exceptions.ConnectionError:
-        print("Error fetching devices: Connection failed.")
-        print(
-            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
-        )
-        return
-    except requests.exceptions.Timeout:
-        print("Error fetching devices: The request timed out.")
-        print("The SD-WAN Manager might be slow to respond or unreachable.")
-        return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching devices: {e}")
+        print(f"An unexpected error occurred: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
@@ -158,22 +144,8 @@ def get_device_by_ip():
         print("Version: ", tr[6])
         print("Config status: ", tr[0])
 
-    except requests.exceptions.HTTPError as e:
-        print(f"Error fetching devices: HTTP Error {e.response.status_code}")
-        print(f"Response: {e.response.text}")
-        return
-    except requests.exceptions.ConnectionError:
-        print("Error fetching devices: Connection failed.")
-        print(
-            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
-        )
-        return
-    except requests.exceptions.Timeout:
-        print("Error fetching devices: The request timed out.")
-        print("The SD-WAN Manager might be slow to respond or unreachable.")
-        return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching devices: {e}")
+        print(f"An unexpected error occurred: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return
@@ -198,22 +170,8 @@ def get_config():
         running_config = payload["config"]
         print(running_config)
 
-    except requests.exceptions.HTTPError as e:
-        print(f"Error fetching devices: HTTP Error {e.response.status_code}")
-        print(f"Response: {e.response.text}")
-        return
-    except requests.exceptions.ConnectionError:
-        print("Error fetching devices: Connection failed.")
-        print(
-            "Please check network connectivity or ensure the SD-WAN Manager host/port is correct and reachable."
-        )
-        return
-    except requests.exceptions.Timeout:
-        print("Error fetching devices: The request timed out.")
-        print("The SD-WAN Manager might be slow to respond or unreachable.")
-        return
     except requests.exceptions.RequestException as e:
-        print(f"An unexpected error occurred while fetching devices: {e}")
+        print(f"An unexpected error occurred: {e}")
         if hasattr(e, "response") and e.response is not None:
             print(f"Status: {e.response.status_code}, Response: {e.response.text}")
         return

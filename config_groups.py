@@ -107,9 +107,13 @@ class SDRoutingFeatureProfile:
             self.profile_name = self.payload["profileName"]
             self.profile_type = self.payload["profileType"]
             self.solution = self.payload["solution"]
+
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching details for profile ID {self.id}: {e}")
+            print(f"An unexpected error occurred: {e}")
             self.payload = None  # Indicate failure to fetch
+            if hasattr(e, "response") and e.response is not None:
+                print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+            return
 
 
 # -----------------------------------------------------------------------------
@@ -123,9 +127,12 @@ class SDRoutingProfileTable:
         # Get list of profiles (summary)
         try:
             summary_data = self.manager._api_get(api_path_summary)
+
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching SD-Routing profile summary: {e}")
-            return  # Exit if summary data cannot be fetched
+            print(f"An unexpected error occurred: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+            return
 
         # For each summary item, fetch full details and create a Profile object
         for item in summary_data:
@@ -256,9 +263,13 @@ class SDWANFeatureProfile:
             self.profile_name = self.payload.get("profileName")
             self.profile_type = self.payload.get("profileType")
             self.solution = self.payload.get("solution")
+
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching details for profile {self.name} ({self.id}): {e}")
+            print(f"An unexpected error occurred: {e}")
             self.payload = None  # Indicate failure to fetch
+            if hasattr(e, "response") and e.response is not None:
+                print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+            return
 
 
 # -----------------------------------------------------------------------------
@@ -275,9 +286,12 @@ class SDWANProfileTable:
         try:
             summary_data = self.manager._api_get(api_path_summary)
             save_json(summary_data, "2_profile_table")  # save payload response
+
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching SD-WAN profile summary: {e}")
-            return  # Exit if summary data cannot be fetched
+            print(f"An unexpected error occurred: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+            return
 
         # For each summary item, fetch full details and create a Profile object
         for item in summary_data:
@@ -735,9 +749,12 @@ class ConfigGroupTable:
             # Fetch summary data first
             summary_data = self.manager._api_get(api_path)
             save_json(summary_data, "1_config_group_table")  # save payload response
+
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching config group summary: {e}")
-            return  # Exit if data cannot be fetched
+            print(f"An unexpected error occurred: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                print(f"Status: {e.response.status_code}, Response: {e.response.text}")
+            return
 
         print("\n--- Collecting Config Groups ---")
         # Iterate through the raw data and create ConfigGroup objects
@@ -757,10 +774,15 @@ class ConfigGroupTable:
                     # The API returns a dictionary with a 'devices' key
                     response_data = self.manager._api_get(device_api_path)
                     detailed_devices_list_raw = response_data.get("devices", [])
+
                 except requests.exceptions.RequestException as e:
                     print(
-                        f"  Error fetching devices for Config Group '{group_dict.get('name')}' (ID: {config_group_id}): {e}"
+                        f"Error fetching devices for Config Group '{group_dict.get('name')}' (ID: {config_group_id}): {e}"
                     )
+                    if hasattr(e, "response") and e.response is not None:
+                        print(
+                            f"Status: {e.response.status_code}, Response: {e.response.text}"
+                        )
                     # Keep detailed_devices_list_raw as empty if there's an error
 
             # Create the ConfigGroup object, passing profile and device dictionaries
